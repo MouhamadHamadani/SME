@@ -38,9 +38,16 @@ class InvoiceLine extends Model
         ];
     }
 
+    /**
+     * The document this line belongs to — an invoice OR a credit note.
+     *
+     * The document_type scope is dropped deliberately: Invoice's global scope
+     * would exclude credit notes, leaving a credit note's own lines with a
+     * null parent and no currency to format against.
+     */
     public function invoice(): BelongsTo
     {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(Invoice::class)->withoutGlobalScope('document_type');
     }
 
     /**

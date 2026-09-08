@@ -17,8 +17,8 @@ the product cannot drift apart.
    effective-dated rate schedules, immutable runs. See **[PAYROLL.md](PAYROLL.md)**.
 4. **VAT** — net/gross calculation, quarterly returns, credit carry-forward.
    See **[VAT.md](VAT.md)**.
-5. **Invoicing** — customers, invoices, gap-free numbering; issuing feeds the
-   VAT return. See **[INVOICING.md](INVOICING.md)**.
+5. **Invoicing** — customers, invoices, credit notes, gap-free numbering;
+   issuing feeds the VAT return. See **[INVOICING.md](INVOICING.md)**.
 
 Running it and signing in as a tenant: **[RUNNING.md](RUNNING.md)**.
 
@@ -28,7 +28,7 @@ stancl/tenancy v3 · MySQL · Pest.
 **No regulatory figures ship with the system.** Rates and ceilings are
 effective-dated data, and payroll refuses to run without them rather than
 computing from a guess — see [PAYROLL.md §1](PAYROLL.md#1-the-figures-are-data-not-code).
-Credit notes and WhatsApp delivery are not built.
+WhatsApp delivery and invoice PDFs are not built.
 
 ---
 
@@ -117,7 +117,8 @@ Do not merge the two.
 | `GET /` | `app.dashboard` | `{tenant}.` |
 | `GET/POST /payroll`, `POST /payroll/finalise` | `app.payroll*` | `{tenant}.` |
 | `GET/POST /vat`, `POST /vat/file` | `app.vat*` | `{tenant}.` |
-| `/invoices` CRUD, issue/paid/void | `app.invoices.*` | `{tenant}.` |
+| `/invoices` CRUD, issue/paid/void/credit | `app.invoices.*` | `{tenant}.` |
+| `/credit-notes/{id}` | `app.credit-notes.show` | `{tenant}.` |
 | `/customers` CRUD | `app.customers.*` | `{tenant}.` |
 | `/employees` CRUD | `app.employees.*` | `{tenant}.` |
 | `POST /logout` · `POST /locale` | `app.logout` · `app.locale` | `{tenant}.` |
@@ -284,7 +285,7 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. 210 tests.
+Pest, `./vendor/bin/pest`. 233 tests.
 
 **Marketing**
 
@@ -327,6 +328,8 @@ Pest, `./vendor/bin/pest`. 210 tests.
 - `InvoicingTest` — line rounding, numbering, immutability, the VAT hand-off
   including the mixed-treatment split
 - `InvoiceScreenTest` — quantity parsing, issuing, void, the role gate
+- `CreditNoteTest`, `CreditNoteScreenTest` — corrections after a return is
+  filed, negative transactions, the separate number series, scope isolation
 
 ---
 

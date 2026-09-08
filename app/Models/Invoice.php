@@ -12,7 +12,27 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
+    /**
+     * Invoices and credit notes share this table, separated by
+     * `document_type`. A global scope pins each model to its own type, so no
+     * existing query has to remember the filter — forgetting one would show a
+     * credit note as an invoice or double-count it, which is exactly the
+     * failure this arrangement rules out.
+     *
+     * CreditNote overrides `booted()` to scope itself the other way.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('document_type', fn (Builder $query) => $query->where('document_type', 'invoice'));
+
+        static::creating(function (self $model) {
+            $model->document_type ??= 'invoice';
+        });
+    }
+
     protected $fillable = [
+        'document_type',
+        'credited_invoice_id',
         'number',
         'reference',
         'customer_id',
@@ -56,18 +76,56 @@ class Invoice extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    /*
+     | Foreign keys are named explicitly on both relations below. CreditNote
+     | extends this class, and Eloquent would otherwise infer the key from the
+     | child's name and look for `credit_note_id` — both documents live in the
+     | invoices table and are referenced by `invoice_id`.
+     */
+
     public function lines(): HasMany
     {
-        return $this->hasMany(InvoiceLine::class)->orderBy('position');
+        return $this->hasMany(InvoiceLine::class, 'invoice_id')->orderBy('position');
     }
 
     /**
-     * One per VAT treatment on the invoice, not one per invoice — see
+     * One per VAT treatment on the document — see
      * IssueInvoice::writeVatTransactions.
      */
     public function vatTransactions(): HasMany
     {
-        return $this->hasMany(VatTransaction::class);
+        return $this->hasMany(VatTransaction::class, 'invoice_id');
+    }
+
+    /** Credit notes raised against this invoice. */
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(CreditNote::class, 'credited_invoice_id');
+    }
+
+    /**
+     * How much of this invoice has already been credited, in its own currency.
+     *
+     * Only ISSUED credit notes count. A draft can still change, and crediting
+     * against a moving figure would let two drafts each look affordable while
+     * together they over-credit the invoice.
+     */
+    public function creditedMinor(): int
+    {
+        return (int) $this->creditNotes()
+            ->whereIn('status', ['issued', 'paid'])
+            ->sum('total_minor');
+    }
+
+    /** What is left to credit. Never negative. */
+    public function creditableMinor(): int
+    {
+        return max(0, $this->total_minor - $this->creditedMinor());
+    }
+
+    public function isFullyCredited(): bool
+    {
+        return $this->status !== 'draft' && $this->creditableMinor() === 0 && $this->total_minor > 0;
     }
 
     public function scopeDrafts(Builder $query): Builder

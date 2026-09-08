@@ -134,7 +134,9 @@
                 @endunless
             </x-card>
 
-            @if ($canManage && ! $invoice->isDraft() && ! $invoice->isVoid())
+            {{-- Actions belong to invoices only: a credit note is neither paid nor
+                 voided, and this view is shared between the two documents. --}}
+            @if ($canManage && $invoice->document_type === 'invoice' && ! $invoice->isDraft() && ! $invoice->isVoid())
                 <x-card tone="light">
                     @unless ($invoice->isPaid())
                         <form method="POST" action="{{ route('app.invoices.mark-paid', $invoice) }}">
@@ -145,6 +147,17 @@
                         </form>
                     @endunless
 
+                    {{-- Crediting is the correction that works after the VAT
+                         period is filed; voiding only works before. --}}
+                    <form method="POST" action="{{ route('app.invoices.credit', $invoice) }}" class="mt-4">
+                        @csrf
+                        <x-button
+                            type="submit" variant="secondary" size="md" class="w-full"
+                            onclick="return confirm(@js(__('app.credit_notes.confirm_full')))"
+                        >{{ __('app.credit_notes.create_full') }}</x-button>
+                        <p class="mt-2 text-xs leading-relaxed text-warm-charcoal/70">{{ __('app.credit_notes.explain') }}</p>
+                    </form>
+
                     <form method="POST" action="{{ route('app.invoices.void', $invoice) }}" class="mt-4 space-y-3">
                         @csrf
                         <x-form.input name="void_reason" :label="__('app.invoices.void_reason')" />
@@ -153,6 +166,45 @@
                             onclick="return confirm(@js(__('app.invoices.void_confirm')))"
                         >{{ __('app.invoices.void') }}</x-button>
                     </form>
+                </x-card>
+            @endif
+
+            @if (! $invoice->isDraft() && ! $invoice->isVoid() && $invoice->document_type === 'invoice' && $invoice->creditNotes->isNotEmpty())
+                <x-card tone="light">
+                    <h2 class="font-semibold text-trust-navy">{{ __('app.credit_notes.heading') }}</h2>
+                    <ul class="mt-3 space-y-2">
+                        @foreach ($invoice->creditNotes as $note)
+                            <li class="flex flex-wrap items-baseline justify-between gap-2">
+                                <a href="{{ route('app.credit-notes.show', $note) }}"
+                                   class="rounded font-medium text-trust-navy underline-offset-4 hover:underline" dir="ltr">
+                                    {{ $note->reference }}
+                                </a>
+                                <span class="tabular-nums text-warm-charcoal/80" dir="ltr">
+                                    -{{ $note->total()->format() }}
+                                </span>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <dl class="mt-4 space-y-2 border-t border-warm-charcoal/12 pt-3 text-sm">
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-warm-charcoal">{{ __('app.credit_notes.creditable') }}</dt>
+                            <dd class="tabular-nums font-semibold text-trust-navy" dir="ltr">
+                                {{ \App\Support\Money::of($invoice->creditableMinor(), $invoice->currency)->format() }}
+                            </dd>
+                        </div>
+                    </dl>
+                </x-card>
+            @endif
+
+            @if ($invoice->document_type === 'credit_note' && $invoice->creditedInvoice)
+                <x-card tone="light">
+                    <p class="text-sm font-semibold uppercase tracking-wider text-warm-charcoal/70">
+                        {{ __('app.credit_notes.against') }}
+                    </p>
+                    <a href="{{ route('app.invoices.show', $invoice->creditedInvoice) }}"
+                       class="mt-1 block rounded font-bold text-trust-navy underline-offset-4 hover:underline" dir="ltr">
+                        {{ $invoice->creditedInvoice->reference }}
+                    </a>
                 </x-card>
             @endif
 

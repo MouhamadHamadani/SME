@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\App\CreditNoteController;
 use App\Http\Controllers\App\CustomerController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EmployeeController;
@@ -62,6 +63,9 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
             Route::post('/invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('app.invoices.issue');
             Route::post('/invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('app.invoices.mark-paid');
             Route::post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('app.invoices.void');
+
+            Route::post('/invoices/{invoice}/credit', [CreditNoteController::class, 'store'])->name('app.invoices.credit');
+            Route::get('/credit-notes/{creditNote}', [CreditNoteController::class, 'show'])->name('app.credit-notes.show');
 
             Route::get('/customers', [CustomerController::class, 'index'])->name('app.customers.index');
             Route::get('/customers/new', [CustomerController::class, 'create'])->name('app.customers.create');

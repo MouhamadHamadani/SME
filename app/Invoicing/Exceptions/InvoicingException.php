@@ -50,6 +50,39 @@ class InvoicingException extends RuntimeException
         return new self("Invoice {$label} is not issued, so it cannot be marked paid.");
     }
 
+    public static function creditNoteNotPayable(string $label): self
+    {
+        return new self("{$label} is a credit note. It reduces what is owed rather than being paid.");
+    }
+
+    public static function creditNoteNotVoidable(string $label): self
+    {
+        return new self(
+            "{$label} is a credit note and cannot be voided. A credit note IS the correction; "
+            .'if it was wrong, raise another document rather than erasing this one.'
+        );
+    }
+
+    public static function cannotCredit(string $label): self
+    {
+        return new self(
+            "{$label} cannot be credited. Only an issued or paid invoice can be — a draft should be "
+            .'edited, and a void invoice has already been reversed.'
+        );
+    }
+
+    public static function overCrediting(string $label, string $remaining): self
+    {
+        return new self(
+            "That would credit more than {$label} is worth. At most {$remaining} remains uncredited."
+        );
+    }
+
+    public static function nothingToCredit(string $label): self
+    {
+        return new self("{$label} has already been credited in full.");
+    }
+
     public static function vatAlreadyFiled(string $label): self
     {
         return new self(

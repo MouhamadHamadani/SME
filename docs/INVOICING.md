@@ -41,7 +41,69 @@ Reference format is `INV-{year}-{0000}`.
 
 ---
 
-## 3. Immutability
+## 3. Credit notes
+
+**Void before the period is filed; credit note after.**
+
+That is the whole distinction. Voiding deletes the invoice's VAT transactions,
+which is only safe while the period is still a draft. Once a return is filed,
+voiding is refused — altering a declared period silently is not an option. A
+credit note corrects it instead, and **the correction lands in the period the
+CREDIT NOTE is issued**, not the invoice's.
+
+| | Void | Credit note |
+|---|---|---|
+| Works after the VAT return is filed | no | **yes** |
+| Effect on the original period | erases it | none |
+| Effect on the current period | none | reduces output VAT |
+| Document produced | none | a numbered tax document |
+
+### How it is stored
+
+Credit notes live in the **`invoices` table**, separated by `document_type`.
+They are structurally the same document — customer, dated lines, currency and
+rate, VAT snapshot, a number, immutability — and a parallel table would
+duplicate all of it and let the two drift.
+
+The safety comes from **global scopes**: `Invoice` is pinned to
+`document_type = 'invoice'` and `CreditNote` to `'credit_note'`, so no existing
+query has to remember the filter. Forgetting one would show a credit note on
+the invoice list or double-count it in a total, which is precisely the failure
+this arrangement rules out.
+
+> Two consequences of the shared table, both handled and both easy to trip
+> over again: relation foreign keys are named **explicitly** (`invoice_id`),
+> because Eloquent would infer `credit_note_id` from the subclass; and
+> `InvoiceLine::invoice()` **drops** the document-type scope, since a line
+> legitimately belongs to either document.
+
+### Rules
+
+- Its own number series, `CN-{year}-{0000}`, starting at 1 independently of
+  invoices.
+- Only an **issued or paid** invoice can be credited. A draft should be edited;
+  a void one is already reversed.
+- **Cannot credit more than the invoice is worth.** Only *issued* credit notes
+  count toward the total — letting drafts reserve headroom would allow two of
+  them to each look affordable while together they over-credit.
+- Amounts are stored **positive** on the document (it reads "credit note for
+  5,000,000") and written **negative** to `vat_transactions`, so the return's
+  existing sums reduce output VAT with no parallel code path. `vat_transactions`
+  and the return totals are signed columns for this reason.
+- One negative transaction **per treatment**, mirroring invoices — correcting
+  the total while corrupting the taxable/exempt split is still a wrong return.
+- A credit note is neither paid nor voided. If it was wrong, raise another
+  document.
+
+### Not built
+
+Only **full** credits have a screen. `IssueCreditNote::issue()` takes arbitrary
+lines and enforces the over-credit limit, so partial credits work in the
+domain — they just need a form.
+
+---
+
+## 4. Immutability
 
 | State | Editable | Notes |
 |---|---|---|
@@ -57,7 +119,7 @@ option; that needs a credit note.
 
 ---
 
-## 4. Money and quantities
+## 5. Money and quantities
 
 Everything integer, via `App\Support\Money`:
 
@@ -73,7 +135,7 @@ Everything integer, via `App\Support\Money`:
 
 ---
 
-## 5. Who can do what
+## 6. Who can do what
 
 Same `manage-payroll` gate as payroll and VAT: **owner and accountant** can
 create, issue, void and mark paid. **Staff can read.** See
@@ -81,7 +143,7 @@ create, issue, void and mark paid. **Staff can read.** See
 
 ---
 
-## 6. Using it
+## 7. Using it
 
 **Invoices** and **Customers** in the top nav.
 
@@ -96,12 +158,10 @@ that touches a regulatory figure — see [VAT.md §1](VAT.md).
 
 ---
 
-## 7. Not built yet
+## 8. Not built yet
 
-- **Credit notes.** The one real gap. Voiding works only while the period is
-  open; once a return is filed, correcting an invoice needs a credit note, and
-  there is none. `VatCalculator` rejects negative amounts, so this is a
-  deliberate hole rather than a half-built one.
+- **Partial credit notes have no screen.** The domain supports them; only the
+  full-credit button exists.
 - **WhatsApp delivery.** The marketing site promises it and the customer's
   number is captured, but sending needs the Meta Cloud API and a verified
   business number. Nothing is wired.
@@ -115,7 +175,7 @@ that touches a regulatory figure — see [VAT.md §1](VAT.md).
 
 ---
 
-## 8. Tests
+## 9. Tests
 
 `InvoicingTest` — line arithmetic and rounding, per-line VAT summation,
 sequential gap-free numbering, no number on drafts, no reuse after voiding,
@@ -126,3 +186,12 @@ behaviour and the filed-return guard, tenant isolation.
 `InvoiceScreenTest` — quantity parsing, validation messages, issuing from the
 screen, the read-only redirect for issued invoices, mark-paid and void, the
 role gate, customer management, and Arabic RTL.
+
+`CreditNoteTest` — the period-shifting property (a filed return stays
+untouched while the credit lands in the next quarter), negative transactions,
+the separate number series, global-scope isolation, over-crediting limits,
+drafts not reserving headroom, what cannot be credited, per-treatment reversal,
+USD, and tenant isolation.
+
+`CreditNoteScreenTest` — crediting from the invoice screen, the linked view,
+credit notes staying off the invoice list, the role gate, and Arabic RTL.

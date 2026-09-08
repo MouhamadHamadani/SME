@@ -21,8 +21,8 @@ Launch blockers and placeholder content are in
    **Read [docs/PAYROLL.md](docs/PAYROLL.md) first.**
 4. **VAT** — net/gross calculation, quarterly returns, credit carry-forward.
    **Read [docs/VAT.md](docs/VAT.md) first.**
-5. **Invoicing** — customers, invoices, gap-free numbering. Issuing an invoice
-   WRITES the VAT transactions the return reads.
+5. **Invoicing** — customers, invoices, credit notes, gap-free numbering.
+   Issuing WRITES the VAT transactions the return reads.
    **Read [docs/INVOICING.md](docs/INVOICING.md) first.**
 
 How to run it and sign in as a tenant: **[docs/RUNNING.md](docs/RUNNING.md)**.
@@ -55,7 +55,12 @@ No invoicing, no billing, no self-serve signup.
   invoice. A mixed invoice reported under a single treatment puts exempt
   amounts into taxable turnover and misstates the return. Regression test.
 - **Issued invoices are immutable and their numbers are never reused.**
-  Correct with a void (period still open) or a credit note (not built yet).
+  Void while the VAT period is open; credit note after it is filed.
+- **Invoices and credit notes share the `invoices` table**, separated by
+  `document_type` and a GLOBAL SCOPE per model. Never query that table without
+  going through Invoice or CreditNote. Relation foreign keys are named
+  explicitly (`invoice_id`) because Eloquent infers `credit_note_id` from the
+  subclass.
 - **Zero-rated is not exempt.** Zero-rated counts as taxable turnover and its
   input VAT is recoverable; exempt does neither. Tests pin both.
 - **Never hard-code a contribution rate, ceiling or tax bracket.** They are
@@ -108,7 +113,7 @@ php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
-./vendor/bin/pest      # 210 tests
+./vendor/bin/pest      # 233 tests
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at
@@ -117,7 +122,7 @@ rebuild.
 
 ## Not built yet (deliberate)
 
-Credit notes · WhatsApp delivery · invoice PDF · payments · family-allowance benefit ·
+Partial credit-note screen · WhatsApp delivery · invoice PDF · payments · family-allowance benefit ·
 part-month pro-rating · self-serve signup and Whish/OMT billing (Phase 2) ·
 password reset · CRM or email automation · final logo · native-reviewed
 Arabic · real photography. Payroll gaps are listed in docs/PAYROLL.md §6.

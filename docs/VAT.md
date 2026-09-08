@@ -60,6 +60,13 @@ Both charge the customer nothing. They are not the same thing:
 Treating an exempt supply as zero-rated overstates taxable turnover and
 over-recovers input VAT. There is a test for it.
 
+### Corrections after filing
+
+A filed period is never reopened. An invoice raised in error is corrected by a
+**credit note**, which writes NEGATIVE transactions dated to the period the
+credit note is issued — see [INVOICING.md](INVOICING.md) §3. `vat_transactions`
+and the return totals are signed columns for exactly this.
+
 ### Credit carry-forward
 
 A quarter where input VAT exceeds output VAT produces a **credit**, not a
@@ -118,8 +125,6 @@ Or from the app: **VAT** in the top nav. Drafting and filing are gated on
 - **Partial exemption / apportionment.** A business making both taxable and
   exempt supplies must apportion its input VAT. Not modelled — `is_recoverable`
   is a manual flag per purchase so the system never silently over-recovers.
-- **Credit notes and corrections.** Negative amounts are rejected. Adjusting a
-  filed period needs a documented correction mechanism.
 - **The declaration form itself.** Totals are computed; the Ministry's actual
   submission format is not generated.
 - **Registration threshold monitoring.** The threshold is stored but nothing
