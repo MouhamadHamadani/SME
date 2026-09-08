@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\NssfRateSchedule;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -62,6 +63,33 @@ function makeTenantUser(Tenant $tenant, array $attributes = []): void
             'locale' => 'ar',
         ], $attributes));
     });
+}
+
+/**
+ * An NSSF rate schedule in the CENTRAL database.
+ *
+ * The figures are TEST FIXTURES, not a claim about the real ceilings — those
+ * are data the system is given, never something it assumes. See docs/PAYROLL.md.
+ */
+function schedule(array $overrides = []): NssfRateSchedule
+{
+    return NssfRateSchedule::create(array_merge([
+        'effective_from' => '2026-01-01',
+        'effective_to' => null,
+        'sickness_employer_bps' => 800,
+        'sickness_employee_bps' => 300,
+        'sickness_ceiling_lbp' => 2_500_000,
+        'family_employer_bps' => 600,
+        'family_ceiling_lbp' => 1_500_000,
+        'eosi_employer_bps' => 850,
+        'source_note' => 'Test fixture',
+    ], $overrides));
+}
+
+/** The same, already checked off against a decree — required to finalise a run. */
+function verified(array $overrides = []): NssfRateSchedule
+{
+    return schedule(array_merge(['verified_at' => now(), 'verified_by' => 'Tester'], $overrides));
 }
 
 /** Full URL for a tenant subdomain, e.g. http://acme.sme.test/login */

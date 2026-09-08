@@ -13,15 +13,16 @@ the product cannot drift apart.
 1. **Public marketing site** — bilingual (EN/AR), lead capture, brand system.
 2. **App foundation** — multi-tenancy, sign-in, and an authenticated shell that
    reuses the marketing component library unchanged.
+3. **Payroll & NSSF** — exact-integer money, the contribution engine,
+   effective-dated rate schedules, immutable runs. See **[PAYROLL.md](PAYROLL.md)**.
 
 Laravel 13 · Tailwind 4 · Blade (no Livewire — nothing needs it yet) ·
 stancl/tenancy v3 · MySQL · Pest.
 
-**Not built, deliberately:** the accounting domain itself (payroll, NSSF, EOSI,
-VAT, ledger). Those models encode real regulatory data — contribution rates,
-ceilings, brackets, filing deadlines — and inventing that schema without the
-actual specification would produce something worse than nothing: code that looks
-authoritative and computes wrong salaries. It needs the real figures first.
+**No regulatory figures ship with the system.** Rates and ceilings are
+effective-dated data, and payroll refuses to run without them rather than
+computing from a guess — see [PAYROLL.md §1](PAYROLL.md#1-the-figures-are-data-not-code).
+VAT and invoicing are not built.
 
 ---
 
@@ -36,8 +37,8 @@ also makes "export or delete everything for this business" one operation.
 
 | | |
 |---|---|
-| Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs` |
-| Tenant DB | `users`, `password_reset_tokens` (business data goes here) |
+| Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs`, `nssf_rate_schedules` |
+| Tenant DB | `users`, `employees`, `payroll_runs`, `payroll_lines` |
 | Tenant model | `App\Models\Tenant` — uuid, name, plan, `wa_phone_number`, `settings` JSON |
 | Resolution | `acme.{app_domain}` → tenant `acme` |
 | Domain source | `config('tenancy.app_domain')`, derived from `APP_URL` — **one** source of truth for routing and provisioning |
@@ -55,7 +56,9 @@ This rule is load-bearing. Tenancy repoints `database.default` at the tenant, so
 any *unpinned* database-backed service looks for its table inside the tenant's
 database and 500s. `session.connection`, `cache.stores.database.connection` and
 `queue.connections.database.connection` are all explicitly pinned to the central
-connection for exactly this reason.
+connection for exactly this reason. `NssfRateSchedule` pins its connection the
+same way — the rates are national law, held once centrally, and read from
+inside a tenant during a payroll run.
 
 > The test suite runs `SESSION_DRIVER=array` and `CACHE_STORE=array`, so it will
 > **not** catch a regression here on its own. `TenantInfrastructureTest` exists

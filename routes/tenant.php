@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\App\DashboardController;
+use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Middleware\SetAppLocale;
 use App\Http\Middleware\ShareTenantUrlDefault;
@@ -44,6 +45,7 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
         // Signed in
         Route::middleware('auth')->group(function () {
             Route::get('/', DashboardController::class)->name('app.dashboard');
+            Route::get('/payroll', PayrollController::class)->name('app.payroll');
             Route::post('/logout', [LoginController::class, 'destroy'])->name('app.logout');
         });
 

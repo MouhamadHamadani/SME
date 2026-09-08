@@ -16,8 +16,11 @@ Launch blockers and placeholder content are in
 1. **Public marketing site** — homepage, bilingual content, lead capture.
 2. **App foundation** — stancl/tenancy v3 (one database per business, subdomain
    resolution), sign-in, and an authenticated shell reusing the same components.
+3. **Payroll & NSSF** — money primitives, the contribution engine, effective-dated
+   rate schedules, payroll runs, and a read-only payroll screen.
+   **Read [docs/PAYROLL.md](docs/PAYROLL.md) before touching it.**
 
-No accounting domain yet (payroll/NSSF/EOSI/VAT), no billing, no self-serve signup.
+No VAT, no invoicing, no billing, no self-serve signup.
 
 ## Hard rules
 
@@ -32,9 +35,18 @@ No accounting domain yet (payroll/NSSF/EOSI/VAT), no billing, no self-serve sign
 - **Route order is load-bearing.** bootstrap/app.php registers tenant routes
   before marketing routes and applies `web` to both. Read the comment there
   before touching it.
-- **Do not invent the NSSF/VAT schema.** Contribution rates, ceilings and
-  brackets are real regulatory data; a plausible-looking guess computes wrong
-  salaries. Get the figures first.
+- **Never hard-code a contribution rate, ceiling or tax bracket.** They are
+  effective-dated data in `nssf_rate_schedules`, and payroll REFUSES to run
+  when none covers the period. A payroll that computes from guessed figures is
+  worse than one that refuses — it looks authoritative and gets declared.
+- **Money is integer minor units, never float.** Use `App\Payroll\Money`.
+  Rates are integer basis points (850 = 8.5%). Rounding happens in exactly one
+  place; do not add a second.
+- **End-of-service has NO ceiling.** Capping it under-contributes for every
+  employee above the ceiling. Sickness and family have DIFFERENT ceilings from
+  each other. There are tests asserting both.
+- **Finalised payroll runs are immutable** and carry a snapshot of the rates
+  they used. Never recompute a finalised period from the current schedule.
 - **Reuse the brand tokens, do not redefine them.** They live in `@theme` in
   `resources/css/app.css` (Tailwind 4 is CSS-first; there is no
   `tailwind.config.js`). Token names are contractual across the site and app.
@@ -71,7 +83,8 @@ npm run build          # required after adding any new Tailwind class
 php artisan migrate
 php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
-./vendor/bin/pest      # 59 tests
+php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
+./vendor/bin/pest      # 102 tests
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at
@@ -80,6 +93,7 @@ rebuild.
 
 ## Not built yet (deliberate)
 
-Accounting domain (payroll, NSSF, EOSI, VAT, ledger) · self-serve signup and
-Whish/OMT billing (Phase 2) · password reset · CRM or email automation · final
-logo · native-reviewed Arabic · real photography.
+VAT returns · invoicing · employee CRUD · family-allowance benefit ·
+part-month pro-rating · self-serve signup and Whish/OMT billing (Phase 2) ·
+password reset · CRM or email automation · final logo · native-reviewed
+Arabic · real photography. Payroll gaps are listed in docs/PAYROLL.md §6.

@@ -40,6 +40,16 @@
                 <span class="hidden text-sm text-warm-offwhite/70 sm:inline" aria-hidden="true">/</span>
                 <span class="text-sm font-semibold text-warm-offwhite">{{ $business }}</span>
 
+                <nav class="ms-4 flex items-center gap-4" aria-label="{{ __('app.nav.dashboard') }}">
+                    @foreach (['app.dashboard' => 'dashboard', 'app.payroll' => 'payroll'] as $route => $key)
+                        <a
+                            href="{{ route($route) }}"
+                            @class(['rounded text-sm underline-offset-4 hover:underline', 'font-semibold text-warm-offwhite' => request()->routeIs($route), 'text-warm-offwhite/85' => ! request()->routeIs($route)])
+                            @if (request()->routeIs($route)) aria-current="page" @endif
+                        >{{ __('app.nav.'.$key) }}</a>
+                    @endforeach
+                </nav>
+
                 <div class="ms-auto flex items-center gap-2">
                     {{-- Locale is a POST, not a link: it writes the person's
                          preference, so it must not be a GET a crawler can trip. --}}
