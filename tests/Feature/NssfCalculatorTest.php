@@ -1,9 +1,9 @@
 <?php
 
-use App\Payroll\Currency;
-use App\Payroll\Money;
 use App\Payroll\NssfCalculator;
 use App\Payroll\NssfRates;
+use App\Support\Currency;
+use App\Support\Money;
 
 /*
  | Worked examples with FIXTURE rates.

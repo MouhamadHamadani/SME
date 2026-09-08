@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Employee;
-use App\Payroll\Currency;
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

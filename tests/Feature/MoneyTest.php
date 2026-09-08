@@ -1,7 +1,7 @@
 <?php
 
-use App\Payroll\Currency;
-use App\Payroll\Money;
+use App\Support\Currency;
+use App\Support\Money;
 
 it('keeps LBP as whole lira and USD as cents', function () {
     expect(Money::lbp(44_750_000)->minorUnits)->toBe(44_750_000)

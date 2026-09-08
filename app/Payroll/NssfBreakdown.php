@@ -2,6 +2,8 @@
 
 namespace App\Payroll;
 
+use App\Support\Money;
+
 /**
  * What one employee costs for one month, broken out the way an NSSF
  * declaration and a payslip both need it.

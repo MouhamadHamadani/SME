@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Payroll\Exceptions\PayrollException;
-use App\Payroll\Money;
 use App\Payroll\NssfRates;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;

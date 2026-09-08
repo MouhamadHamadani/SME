@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Payroll;
+namespace App\Support;
 
 /**
  * The two currencies this product books in.

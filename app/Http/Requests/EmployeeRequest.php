@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests;
 
-use App\Payroll\Currency;
-use App\Payroll\Money;
+use App\Support\Currency;
+use App\Support\Money;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;

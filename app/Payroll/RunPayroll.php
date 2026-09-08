@@ -7,6 +7,7 @@ use App\Models\NssfRateSchedule;
 use App\Models\PayrollLine;
 use App\Models\PayrollRun;
 use App\Payroll\Exceptions\PayrollException;
+use App\Support\Currency;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 

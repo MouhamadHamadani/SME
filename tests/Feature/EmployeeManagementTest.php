@@ -4,9 +4,9 @@ use App\Models\Employee;
 use App\Models\PayrollLine;
 use App\Models\PayrollRun;
 use App\Models\User;
-use App\Payroll\Currency;
-use App\Payroll\Money;
 use App\Payroll\RunPayroll;
+use App\Support\Currency;
+use App\Support\Money;
 
 beforeEach(function () {
     $this->tenant = makeTenant('acme', ['name' => 'Acme Trading']);

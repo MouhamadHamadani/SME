@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Payroll\Currency;
-use App\Payroll\Money;
 use App\Payroll\NssfBreakdown;
+use App\Support\Currency;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

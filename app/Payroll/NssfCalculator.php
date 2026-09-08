@@ -2,6 +2,8 @@
 
 namespace App\Payroll;
 
+use App\Support\Currency;
+use App\Support\Money;
 use InvalidArgumentException;
 
 /**
