@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Crypt;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
@@ -38,6 +40,7 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'name',
             'plan',
             'wa_phone_number',
+            'wa_phone_number_id',
         ];
     }
 
@@ -74,5 +77,52 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public function isOnPlan(string $plan): bool
     {
         return $this->plan === $plan;
+    }
+
+    /**
+     * Meta Cloud API credentials for this business, or null if not connected.
+     *
+     * The access token is stored ENCRYPTED in the tenant's settings: it is a
+     * bearer credential that can send messages as the business, and the
+     * central tenants table is not a place to keep one in clear text.
+     *
+     * @return array{phone_number_id: string, access_token: string}|null
+     */
+    public function whatsappCredentials(): ?array
+    {
+        $token = $this->settings['whatsapp_access_token'] ?? null;
+
+        if (! $this->wa_phone_number_id || ! $token) {
+            return null;
+        }
+
+        try {
+            $token = Crypt::decryptString($token);
+        } catch (DecryptException) {
+            // A token encrypted under a rotated APP_KEY is unusable. Treat it
+            // as not connected rather than sending garbage as a bearer token.
+            return null;
+        }
+
+        return [
+            'phone_number_id' => (string) $this->wa_phone_number_id,
+            'access_token' => $token,
+        ];
+    }
+
+    public function connectWhatsApp(string $phoneNumberId, string $accessToken, ?string $displayNumber = null): void
+    {
+        $this->update([
+            'wa_phone_number_id' => $phoneNumberId,
+            'wa_phone_number' => $displayNumber ?? $this->wa_phone_number,
+            'settings' => array_merge($this->settings, [
+                'whatsapp_access_token' => Crypt::encryptString($accessToken),
+            ]),
+        ]);
+    }
+
+    public function hasWhatsApp(): bool
+    {
+        return $this->whatsappCredentials() !== null;
     }
 }

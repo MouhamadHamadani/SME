@@ -19,6 +19,8 @@ the product cannot drift apart.
    See **[VAT.md](VAT.md)**.
 5. **Invoicing** — customers, invoices, credit notes, gap-free numbering;
    issuing feeds the VAT return. See **[INVOICING.md](INVOICING.md)**.
+6. **WhatsApp delivery** — Meta Cloud API, per-business credentials, signed
+   delivery webhooks. See **[WHATSAPP.md](WHATSAPP.md)**.
 
 Running it and signing in as a tenant: **[RUNNING.md](RUNNING.md)**.
 
@@ -28,7 +30,7 @@ stancl/tenancy v3 · MySQL · Pest.
 **No regulatory figures ship with the system.** Rates and ceilings are
 effective-dated data, and payroll refuses to run without them rather than
 computing from a guess — see [PAYROLL.md §1](PAYROLL.md#1-the-figures-are-data-not-code).
-WhatsApp delivery and invoice PDFs are not built.
+Invoice PDFs and inbound WhatsApp messages are not built.
 
 ---
 
@@ -44,7 +46,7 @@ also makes "export or delete everything for this business" one operation.
 | | |
 |---|---|
 | Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs`, `nssf_rate_schedules`, `vat_rate_schedules` |
-| Tenant DB | `users`, `employees`, `payroll_runs`, `payroll_lines`, `vat_transactions`, `vat_returns`, `customers`, `invoices`, `invoice_lines` |
+| Tenant DB | `users`, `employees`, `payroll_runs`, `payroll_lines`, `vat_transactions`, `vat_returns`, `customers`, `invoices`, `invoice_lines`, `whatsapp_messages` |
 | Tenant model | `App\Models\Tenant` — uuid, name, plan, `wa_phone_number`, `settings` JSON |
 | Resolution | `acme.{app_domain}` → tenant `acme` |
 | Domain source | `config('tenancy.app_domain')`, derived from `APP_URL` — **one** source of truth for routing and provisioning |
@@ -119,6 +121,8 @@ Do not merge the two.
 | `GET/POST /vat`, `POST /vat/file` | `app.vat*` | `{tenant}.` |
 | `/invoices` CRUD, issue/paid/void/credit | `app.invoices.*` | `{tenant}.` |
 | `/credit-notes/{id}` | `app.credit-notes.show` | `{tenant}.` |
+| `POST /invoices/{id}/whatsapp` | `app.invoices.whatsapp` | `{tenant}.` |
+| `/webhooks/whatsapp` | `whatsapp.webhook*` | **central**, HMAC-signed |
 | `/customers` CRUD | `app.customers.*` | `{tenant}.` |
 | `/employees` CRUD | `app.employees.*` | `{tenant}.` |
 | `POST /logout` · `POST /locale` | `app.logout` · `app.locale` | `{tenant}.` |
@@ -286,7 +290,7 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. 243 tests.
+Pest, `./vendor/bin/pest`. 271 tests.
 
 **Marketing**
 
@@ -330,6 +334,8 @@ Pest, `./vendor/bin/pest`. 243 tests.
   including the mixed-treatment split
 - `InvoiceScreenTest` — quantity parsing, issuing, void, the role gate
 - `PartialCreditNoteTest` — the pre-filled form and the over-credit ceiling
+- `WhatsAppTest`, `WhatsAppWebhookTest` — number normalisation, the Cloud API
+  payload, per-tenant credentials, signature verification, delivery statuses
 - `CreditNoteTest`, `CreditNoteScreenTest` — corrections after a return is
   filed, negative transactions, the separate number series, scope isolation
 

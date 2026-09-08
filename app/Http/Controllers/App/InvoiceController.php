@@ -10,6 +10,9 @@ use App\Invoicing\IssueInvoice;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\VatRateSchedule;
+use App\Models\WhatsAppMessage;
+use App\WhatsApp\Exceptions\WhatsAppException;
+use App\WhatsApp\SendInvoice;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -60,6 +63,7 @@ class InvoiceController extends Controller
     {
         return view('app.invoices.show', [
             'invoice' => $invoice->load('lines', 'customer', 'vatTransactions'),
+            'messages' => WhatsAppMessage::where('invoice_id', $invoice->id)->latest()->get(),
         ]);
     }
 
@@ -115,6 +119,29 @@ class InvoiceController extends Controller
         return redirect()
             ->route('app.invoices.show', $invoice)
             ->with('status', __('app.invoices.issued_ok'));
+    }
+
+    /**
+     * Send an issued invoice to the customer on WhatsApp.
+     *
+     * Synchronous on purpose: the person clicking wants to know whether it
+     * went, and a queued job that fails silently is worse than a slow button.
+     * Move it to a job when volume needs it — the delivery row already models
+     * a queued state.
+     */
+    public function sendWhatsApp(Invoice $invoice, SendInvoice $sender): RedirectResponse
+    {
+        $this->authorize('manage-payroll');
+
+        try {
+            $sender->send($invoice, tenant());
+        } catch (WhatsAppException $e) {
+            return back()->withErrors(['issue' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('app.invoices.show', $invoice)
+            ->with('status', __('app.whatsapp.sent_ok'));
     }
 
     public function markPaid(Invoice $invoice): RedirectResponse

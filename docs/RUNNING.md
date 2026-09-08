@@ -100,6 +100,7 @@ persists.
 | Payroll | `/payroll` | NSSF contributions, draft and finalise a month |
 | Invoices | `/invoices` | Create, issue, mark paid, void |
 | Customers | `/customers` | Who you invoice |
+| — | on an invoice | Send on WhatsApp (log driver by default — see WHATSAPP.md) |
 | VAT | `/vat` | Quarterly return, draft and file |
 | Employees | `/employees` | Add, edit, end employment |
 

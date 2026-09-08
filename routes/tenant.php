@@ -62,6 +62,7 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
             Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('app.invoices.update');
             Route::post('/invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('app.invoices.issue');
             Route::post('/invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('app.invoices.mark-paid');
+            Route::post('/invoices/{invoice}/whatsapp', [InvoiceController::class, 'sendWhatsApp'])->name('app.invoices.whatsapp');
             Route::post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('app.invoices.void');
 
             Route::get('/invoices/{invoice}/credit', [CreditNoteController::class, 'create'])->name('app.invoices.credit.create');

@@ -8,6 +8,7 @@ use App\Invoicing\Exceptions\InvoicingException;
 use App\Invoicing\IssueCreditNote;
 use App\Models\CreditNote;
 use App\Models\Invoice;
+use App\Models\WhatsAppMessage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -18,6 +19,7 @@ class CreditNoteController extends Controller
     {
         return view('app.invoices.show', [
             'invoice' => $creditNote->load('lines', 'customer', 'creditedInvoice'),
+            'messages' => WhatsAppMessage::where('invoice_id', $creditNote->id)->latest()->get(),
         ]);
     }
 

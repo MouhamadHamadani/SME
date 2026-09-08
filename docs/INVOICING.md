@@ -181,9 +181,9 @@ that touches a regulatory figure — see [VAT.md §1](VAT.md).
 
 ## 8. Not built yet
 
-- **WhatsApp delivery.** The marketing site promises it and the customer's
-  number is captured, but sending needs the Meta Cloud API and a verified
-  business number. Nothing is wired.
+- **WhatsApp delivery is built** — see [WHATSAPP.md](WHATSAPP.md). It needs a
+  verified Meta number and an approved template before it can actually send;
+  the default driver writes to the log.
 - **PDF / print.** The invoice view is HTML only. No PDF, no print stylesheet.
 - **Payments.** `paid_at` is a flag, not a payment record — no partial
   payments, no allocation, no receipts.

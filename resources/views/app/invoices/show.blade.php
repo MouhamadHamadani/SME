@@ -136,6 +136,64 @@
 
             {{-- Actions belong to invoices only: a credit note is neither paid nor
                  voided, and this view is shared between the two documents. --}}
+            {{-- WhatsApp: the delivery channel the product is sold on. Shows
+                 what actually happened rather than just offering a button. --}}
+            @unless ($invoice->isDraft())
+                <x-card tone="light">
+                    <h2 class="font-semibold text-trust-navy">{{ __('app.whatsapp.heading') }}</h2>
+
+                    @if ($messages->isEmpty())
+                        <p class="mt-2 text-sm text-warm-charcoal/70">{{ __('app.whatsapp.never_sent') }}</p>
+                    @else
+                        <ul class="mt-3 space-y-3">
+                            @foreach ($messages as $message)
+                                <li class="flex flex-wrap items-center justify-between gap-2 border-b border-warm-charcoal/8 pb-3 last:border-0 last:pb-0">
+                                    <span>
+                                        <span class="block tabular-nums text-warm-charcoal" dir="ltr">
+                                            {{ $message->recipientNumber()->forDisplay() }}
+                                        </span>
+                                        <span class="block text-xs tabular-nums text-warm-charcoal/70" dir="ltr">
+                                            {{ ($message->sent_at ?? $message->created_at)->format('Y-m-d H:i') }}
+                                        </span>
+                                    </span>
+                                    <x-status-badge :status="$message->statusKey()">
+                                        {{ __('app.whatsapp.status_'.$message->status) }}
+                                    </x-status-badge>
+                                </li>
+                            @endforeach
+                        </ul>
+
+                        @if ($messages->first()?->hasFailed() && $messages->first()->error)
+                            <p class="mt-3 text-sm text-status-overdue">{{ $messages->first()->error }}</p>
+                        @endif
+                    @endif
+
+                    @if ($canManage && ! $invoice->isVoid())
+                        @if (! tenant()->hasWhatsApp() && config('whatsapp.driver') === 'cloud')
+                            <p class="mt-4 text-sm text-warm-charcoal/70">{{ __('app.whatsapp.not_connected') }}</p>
+                        @elseif (! $invoice->customer->phone)
+                            <p class="mt-4 text-sm text-warm-charcoal/70">{{ __('app.whatsapp.no_phone') }}</p>
+                        @else
+                            <form method="POST" action="{{ route('app.invoices.whatsapp', $invoice) }}" class="mt-4">
+                                @csrf
+                                <x-button
+                                    type="submit" variant="primary" size="md" class="w-full"
+                                    onclick="return confirm(@js(__('app.whatsapp.send_confirm')))"
+                                >{{ __('app.whatsapp.send') }}</x-button>
+                            </form>
+
+                            @if (config('whatsapp.driver') !== 'cloud')
+                                {{-- Say so plainly. Believing an invoice was
+                                     delivered when nothing left the machine is
+                                     the worst failure this feature has. --}}
+                                <p class="mt-2 text-xs leading-relaxed text-warm-charcoal/70">
+                                    {{ __('app.whatsapp.log_mode') }}
+                                </p>
+                            @endif
+                        @endif
+                    @endif
+                </x-card>
+            @endunless
             @if ($canManage && $invoice->document_type === 'invoice' && ! $invoice->isDraft() && ! $invoice->isVoid())
                 <x-card tone="light">
                     @unless ($invoice->isPaid())

@@ -24,6 +24,8 @@ Launch blockers and placeholder content are in
 5. **Invoicing** — customers, invoices, credit notes, gap-free numbering.
    Issuing WRITES the VAT transactions the return reads.
    **Read [docs/INVOICING.md](docs/INVOICING.md) first.**
+6. **WhatsApp delivery** — Meta Cloud API, per-business credentials, signed
+   delivery webhooks. **Read [docs/WHATSAPP.md](docs/WHATSAPP.md) first.**
 
 How to run it and sign in as a tenant: **[docs/RUNNING.md](docs/RUNNING.md)**.
 
@@ -47,6 +49,13 @@ No invoicing, no billing, no self-serve signup.
 - **Route order is load-bearing.** bootstrap/app.php registers tenant routes
   before marketing routes and applies `web` to both. Read the comment there
   before touching it.
+- **WHATSAPP_DRIVER defaults to `log` and must stay that way.** An
+  unconfigured install messaging a real customer during a test is the worst
+  failure this feature has. Never default it to `cloud`.
+- **Never send a WhatsApp message from a test.** The suite uses
+  `Http::preventStrayRequests()`; keep it that way.
+- **Webhook callbacks are HMAC-verified before anything is read.** No secret
+  configured means reject, never accept unverified.
 - **Money lives in `App\Support\Money`** (integer minor units, never float).
   Adding LBP to USD throws. VAT has TWO directions — `fromNet` adds tax on
   top, `fromGross` extracts it from within; using the wrong one inflates
@@ -115,7 +124,7 @@ php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
-./vendor/bin/pest      # 243 tests
+./vendor/bin/pest      # 271 tests
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at
@@ -124,7 +133,7 @@ rebuild.
 
 ## Not built yet (deliberate)
 
-WhatsApp delivery · invoice PDF · payments · family-allowance benefit ·
+Invoice PDF · inbound WhatsApp messages · payments · family-allowance benefit ·
 part-month pro-rating · self-serve signup and Whish/OMT billing (Phase 2) ·
 password reset · CRM or email automation · final logo · native-reviewed
 Arabic · real photography. Payroll gaps are listed in docs/PAYROLL.md §6.

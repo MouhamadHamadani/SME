@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\WhatsApp\SenderFactory;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +28,13 @@ class AppServiceProvider extends ServiceProvider
          | ASSUMPTION, not a stated requirement: revisit if staff need to
          | maintain the employee list.
          */
+        /*
+         | Senders are per tenant, so the factory is what gets injected — never
+         | a single shared sender. Resolving one at boot would bind whichever
+         | business happened to be in context first.
+         */
+        $this->app->singleton(SenderFactory::class);
+
         Gate::define('manage-payroll', fn (User $user) => $user->isOwner() || $user->isAccountant());
     }
 }
