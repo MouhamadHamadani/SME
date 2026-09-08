@@ -25,6 +25,7 @@ return [
         'customers' => 'Customers',
         'vat' => 'VAT',
         'employees' => 'Employees',
+        'settings' => 'Settings',
         'switch_language' => 'العربية',
         'switch_language_aria' => 'Switch to Arabic',
         'sign_out' => 'Sign out',
@@ -303,5 +304,47 @@ return [
         'no_phone' => 'This customer has no phone number.',
         'log_mode' => 'Test mode: messages are written to the log and nothing is sent.',
         'never_sent' => 'Not sent yet.',
+    ],
+
+    'settings' => [
+        'whatsapp' => [
+            'heading' => 'WhatsApp connection',
+            'intro' => 'Connect your own WhatsApp Business number. Invoices go out from it, so customers see your business — not ours.',
+
+            'status_heading' => 'Connection',
+            'not_connected' => 'No number is connected, so invoices cannot be sent on WhatsApp yet.',
+            'number' => 'Number',
+            'number_unknown' => 'Confirmed by Meta on the next check',
+            'phone_number_id' => 'Phone number ID',
+            'phone_number_id_hint' => 'The numeric ID Meta shows beside your number — not the number itself.',
+            'token' => 'Access token',
+            'token_hint' => 'A permanent system user token. Stored encrypted and never shown again.',
+            'token_stored' => 'Stored, encrypted',
+            'connected_on' => 'Connected on',
+
+            'connect_heading' => 'Connect a number',
+            'connect' => 'Connect',
+            'replace_heading' => 'Replace the token',
+            'replace' => 'Replace',
+            'saved' => 'WhatsApp is connected.',
+
+            'test' => 'Check the connection',
+            'tested_ok' => 'Working. Meta reports :number, sending as :name.',
+            'cannot_test_in_log_mode' => 'Nothing to check while the app is in test mode — no request reaches Meta.',
+
+            'disconnect' => 'Disconnect',
+            'disconnect_confirm' => 'Disconnect WhatsApp? Invoices can no longer be sent until a number is connected again.',
+            'disconnected' => 'WhatsApp disconnected. Past deliveries are still listed on each invoice.',
+
+            'test_mode' => 'This app is in test mode.',
+            'test_mode_detail' => 'You can save your credentials now, but they are not checked with Meta and no message is sent — everything is written to the log instead.',
+
+            'where_heading' => 'Where to find these',
+            'step_1' => 'In Meta Business Manager, add the WhatsApp product to your business and register this number.',
+            'step_2' => 'Open WhatsApp → API Setup. The phone number ID is shown beneath the number you registered.',
+            'step_3' => 'Under Business settings → Users → System users, create a system user and generate a permanent token with the whatsapp_business_messaging and whatsapp_business_management permissions.',
+            'step_4' => 'Paste both above. We check them with Meta before saving, so a typo is caught here rather than on a customer’s invoice.',
+            'app_conflict' => 'A number that is signed in to the WhatsApp Business phone app cannot be used here at the same time. Meta requires you to move it across, and that ends its use in the app.',
+        ],
     ],
 ];

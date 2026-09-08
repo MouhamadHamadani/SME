@@ -9,6 +9,7 @@ use App\Http\Controllers\App\EmployeeController;
 use App\Http\Controllers\App\InvoiceController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\VatController;
+use App\Http\Controllers\App\WhatsAppSettingsController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Middleware\SetAppLocale;
 use App\Http\Middleware\TenantRouteParameter;
@@ -78,6 +79,16 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
             Route::get('/vat', [VatController::class, 'index'])->name('app.vat');
             Route::post('/vat', [VatController::class, 'store'])->name('app.vat.draft');
             Route::post('/vat/file', [VatController::class, 'file'])->name('app.vat.file');
+
+            /*
+             | Connecting WhatsApp is self-serve: an owner who signed up an
+             | hour ago cannot ssh in and run `whatsapp:connect`. Owner-only —
+             | see the manage-settings gate.
+             */
+            Route::get('/settings/whatsapp', [WhatsAppSettingsController::class, 'edit'])->name('app.settings.whatsapp');
+            Route::post('/settings/whatsapp', [WhatsAppSettingsController::class, 'update'])->name('app.settings.whatsapp.update');
+            Route::post('/settings/whatsapp/test', [WhatsAppSettingsController::class, 'test'])->name('app.settings.whatsapp.test');
+            Route::delete('/settings/whatsapp', [WhatsAppSettingsController::class, 'destroy'])->name('app.settings.whatsapp.disconnect');
 
             Route::get('/employees', [EmployeeController::class, 'index'])->name('app.employees.index');
             Route::get('/employees/new', [EmployeeController::class, 'create'])->name('app.employees.create');

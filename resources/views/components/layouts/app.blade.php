@@ -48,6 +48,16 @@
                             @if (request()->routeIs($route)) aria-current="page" @endif
                         >{{ __('app.nav.'.$key) }}</a>
                     @endforeach
+
+                    {{-- Owner-only, so it is not shown to a seat that would
+                         only get a 403 by following it. --}}
+                    @can('manage-settings')
+                        <a
+                            href="{{ route('app.settings.whatsapp') }}"
+                            @class(['rounded text-sm underline-offset-4 hover:underline', 'font-semibold text-warm-offwhite' => request()->routeIs('app.settings.*'), 'text-warm-offwhite/85' => ! request()->routeIs('app.settings.*')])
+                            @if (request()->routeIs('app.settings.*')) aria-current="page" @endif
+                        >{{ __('app.nav.settings') }}</a>
+                    @endcan
                 </nav>
 
                 <div class="ms-auto flex items-center gap-2">

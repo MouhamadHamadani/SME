@@ -117,12 +117,38 @@ class Tenant extends BaseTenant implements TenantWithDatabase
             'wa_phone_number' => $displayNumber ?? $this->wa_phone_number,
             'settings' => array_merge($this->settings, [
                 'whatsapp_access_token' => Crypt::encryptString($accessToken),
+                'whatsapp_connected_at' => now()->toIso8601String(),
             ]),
+        ]);
+    }
+
+    /**
+     * Forget the credentials.
+     *
+     * The token is REMOVED, not blanked: a business that disconnects has
+     * usually revoked or rotated it, and keeping a dead bearer credential in
+     * the row serves nobody. The delivery log stays — "did the customer get
+     * it?" still has to be answerable afterwards.
+     */
+    public function disconnectWhatsApp(): void
+    {
+        $settings = $this->settings;
+        unset($settings['whatsapp_access_token'], $settings['whatsapp_connected_at']);
+
+        $this->update([
+            'wa_phone_number_id' => null,
+            'wa_phone_number' => null,
+            'settings' => $settings,
         ]);
     }
 
     public function hasWhatsApp(): bool
     {
         return $this->whatsappCredentials() !== null;
+    }
+
+    public function whatsappConnectedAt(): ?string
+    {
+        return $this->settings['whatsapp_connected_at'] ?? null;
     }
 }

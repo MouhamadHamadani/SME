@@ -7,6 +7,7 @@ use App\WhatsApp\Exceptions\WhatsAppException;
 use App\WhatsApp\SentMessage;
 use App\WhatsApp\TemplateMessage;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -57,12 +58,7 @@ class CloudApiSender implements WhatsAppSender
         }
 
         if ($response->failed()) {
-            // Meta nests the useful part; the raw body is the fallback.
-            $detail = $response->json('error.message')
-                ?? $response->json('error.error_user_msg')
-                ?? $response->body();
-
-            throw WhatsAppException::rejected(is_string($detail) ? $detail : json_encode($detail));
+            throw WhatsAppException::rejected($this->errorFrom($response));
         }
 
         $id = $response->json('messages.0.id');
@@ -72,5 +68,62 @@ class CloudApiSender implements WhatsAppSender
         }
 
         return new SentMessage($id, $payload);
+    }
+
+    /**
+     * Confirm the credentials work, WITHOUT sending anything.
+     *
+     * A settings form that only stores what was pasted is a form that
+     * discovers a typo when a customer's invoice fails. This is a read-only
+     * GET against the number itself: a wrong id, an expired token or a token
+     * belonging to a different business all fail here, in front of the person
+     * who can fix them.
+     *
+     * @return array{display_phone_number: string, verified_name: string}
+     */
+    public function verify(): array
+    {
+        $url = sprintf(
+            '%s/%s/%s',
+            rtrim((string) config('whatsapp.base_url'), '/'),
+            config('whatsapp.api_version'),
+            $this->phoneNumberId,
+        );
+
+        try {
+            $response = Http::withToken($this->accessToken)
+                ->acceptJson()
+                ->timeout(15)
+                ->get($url, ['fields' => 'display_phone_number,verified_name']);
+        } catch (ConnectionException $e) {
+            throw WhatsAppException::unreachable($e->getMessage());
+        }
+
+        if ($response->failed()) {
+            throw WhatsAppException::rejected($this->errorFrom($response));
+        }
+
+        $number = $response->json('display_phone_number');
+
+        if (! is_string($number) || $number === '') {
+            // A 200 with no number means the id is not a phone number at all
+            // — a WABA id pasted into the wrong box is the usual cause.
+            throw WhatsAppException::rejected('that id did not return a phone number.');
+        }
+
+        return [
+            'display_phone_number' => $number,
+            'verified_name' => (string) ($response->json('verified_name') ?? ''),
+        ];
+    }
+
+    /** Meta nests the useful part; the raw body is the fallback. */
+    private function errorFrom(Response $response): string
+    {
+        $detail = $response->json('error.message')
+            ?? $response->json('error.error_user_msg')
+            ?? $response->body();
+
+        return is_string($detail) ? $detail : (string) json_encode($detail);
     }
 }

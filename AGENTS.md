@@ -56,6 +56,10 @@ No invoicing, no billing, no self-serve signup.
   `Http::preventStrayRequests()`; keep it that way.
 - **Webhook callbacks are HMAC-verified before anything is read.** No secret
   configured means reject, never accept unverified.
+- **A WhatsApp access token is never rendered back to the browser** — not
+  masked, not in `old()`. It is in `dontFlash` in bootstrap/app.php; leave it
+  there. Connecting is gated on `manage-settings` (owner only), which is
+  narrower than `manage-payroll` on purpose.
 - **Money lives in `App\Support\Money`** (integer minor units, never float).
   Adding LBP to USD throws. VAT has TWO directions — `fromNet` adds tax on
   top, `fromGross` extracts it from within; using the wrong one inflates
@@ -124,7 +128,7 @@ php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
-./vendor/bin/pest      # 271 tests
+./vendor/bin/pest      # 285 tests
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at

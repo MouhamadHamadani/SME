@@ -15,16 +15,71 @@ The code is complete. What it cannot do is get you a WhatsApp Business account
 
 | | Needed for | Where it goes |
 |---|---|---|
-| A **verified WhatsApp Business number** | sending at all | `whatsapp:connect` |
-| A **permanent access token** | sending at all | `whatsapp:connect` (stored encrypted) |
+| A **number registered on the Cloud API** | sending at all | Settings → WhatsApp |
+| A **permanent access token** | sending at all | Settings → WhatsApp (stored encrypted) |
 | An **approved message template** | sending at all | `WHATSAPP_INVOICE_TEMPLATE` |
 | App secret + verify token | delivery receipts | `.env` |
+| A **payment method on the WhatsApp account** | sending past the free allowance | Meta Business Manager |
 
-> **Confirm the API shape against current Meta docs before going live.** The
+> **Confirm all of this against current Meta docs before going live.** The
 > endpoint (`/{phone-number-id}/messages`), the template payload, and the
 > webhook envelope in this code follow the Cloud API as of the pinned
-> `WHATSAPP_API_VERSION`. Meta changes these between versions, and a wrong
-> shape fails at send time, not at deploy time.
+> `WHATSAPP_API_VERSION`. Meta changes these between versions — and changes
+> the setup steps, limits and pricing more often than that. A wrong shape
+> fails at send time, not at deploy time.
+
+### Having a WhatsApp Business number is not the same as being ready
+
+The number you already use is almost certainly signed in to the **WhatsApp
+Business app** on a phone. That number **cannot be on the app and the Cloud
+API at the same time.** Moving it across ends its use in the app: no more
+replying from the handset, and the chat history stays on the device rather
+than coming with it.
+
+So decide first:
+
+- **Move the existing number.** Customers already know it. You lose the app.
+- **Register a different number.** Keep the app for conversations, send
+  invoices from a second number. It needs to receive one SMS or voice call to
+  register, and a landline works.
+
+There is no third option where one number does both.
+
+### The one-time setup, in order
+
+Steps 1–5 are done once by you as the operator; step 6 is per business.
+
+1. **Meta Business portfolio**, then **business verification** — commercial
+   registration and proof of address. Until it is verified you are capped at a
+   low daily number of business-initiated conversations and cannot get a
+   display name approved. Verification is the slow step; start it first.
+2. **A Meta app** of type Business with the WhatsApp product added. This is
+   where the **app secret** comes from (`WHATSAPP_APP_SECRET`).
+3. **Register the number** under WhatsApp → API Setup and choose the display
+   name customers will see. The name goes through its own review, separately
+   from business verification.
+4. **A system user with a permanent access token**, with the
+   `whatsapp_business_messaging` and `whatsapp_business_management`
+   permissions. The token shown on the API Setup screen expires in 24 hours —
+   it is for testing, and using it in production means sends stop the next day.
+5. **A payment method** on the WhatsApp Business account. Meta charges for
+   business-initiated messages beyond a free allowance; with no card on file
+   sending stops once it runs out. An invoice notification bills at the
+   **utility** rate, the cheapest category.
+6. **The template**, and then the business connects itself — see §3.
+
+### Then switch it on
+
+```
+WHATSAPP_DRIVER=cloud
+WHATSAPP_APP_SECRET=...          # from the Meta app
+WHATSAPP_VERIFY_TOKEN=...        # any long random string you also paste at Meta
+WHATSAPP_INVOICE_TEMPLATE=invoice_notification
+WHATSAPP_INVOICE_TEMPLATE_LANGUAGE=ar
+```
+
+Leave `WHATSAPP_DRIVER` alone until the template is approved. Everything else
+can be configured while the driver is still `log`.
 
 ### The template constraint
 
@@ -60,16 +115,37 @@ messaging a real customer during a test. The log driver returns a
 `wamid.LOG-…` id shaped like Meta's, so nothing downstream learns to expect a
 different format from the fake than from the real thing.
 
-The invoice screen says **"Test mode: messages are written to the log and
-nothing is sent"** whenever the driver is not `cloud`. Believing an invoice was
+The invoice screen and the settings screen both say **"test mode … nothing is
+sent"** whenever the driver is not `cloud`. Believing an invoice was
 delivered when nothing left the machine is the worst failure this feature has,
 so it is stated on screen rather than left to the reader's memory.
 
 ---
 
-## 3. Credentials are per business
+## 3. Credentials are per business, and businesses connect themselves
 
-Each tenant connects its **own** Meta number:
+**Settings → WhatsApp**, in the app. Owner only — the `manage-settings` gate
+is deliberately narrower than `manage-payroll`, because the token can message
+customers *as* the business and changing it changes who those customers hear
+from. That is not a visiting accountant's decision.
+
+The screen takes the **phone number id** and the **access token**, and while
+the driver is `cloud` it **checks them with Meta before storing anything** —
+a read-only `GET` on the number itself. A wrong id, an expired token or a
+token belonging to a different business all fail on that screen, in front of
+the person who can fix it. Without the check, the first sign of a bad paste is
+a customer's invoice failing.
+
+Meta's own error text is shown verbatim. Ours would be a guess about which of
+seven setup steps is missing.
+
+The token goes in **write-only**: it is never rendered back, not even masked,
+and `bootstrap/app.php` adds it to `dontFlash` so a failed validation cannot
+leave a bearer credential sitting in the session. **Check the connection**
+re-verifies a stored token, because tokens get revoked without anyone telling
+us and the alternative to a button is hearing about it from a customer.
+
+The same operation still exists on the command line for support work:
 
 ```bash
 php artisan whatsapp:connect arzclinic --phone-number-id=1234567890
@@ -80,12 +156,40 @@ php artisan whatsapp:connect arzclinic --show
 
 A platform-wide token would let one business's invoices go out from another's
 number. The access token is **encrypted at rest** (`Crypt::encryptString`) in
-the tenant's settings — it is a bearer credential that can send as the
-business. The command prompts for it rather than taking an argument, so it
-does not land in shell history or a process list.
+the tenant's settings. The command prompts for it rather than taking an
+argument, so it does not land in shell history or a process list.
 
 A token encrypted under a rotated `APP_KEY` is treated as **not connected**
 rather than sent as a garbage bearer token.
+
+### Who owns the Meta account: three models
+
+This is a product decision, not a technical one, and it is worth making
+deliberately.
+
+**A. Each business brings its own Meta app and token** — what the screen above
+supports. Correct isolation, no shared reputation, no work for you. It also
+asks a Beirut retailer to complete business verification and create a system
+user in Meta Business Manager. Expect most of them not to finish.
+
+**B. You onboard them as a Tech Provider (Embedded Signup).** One Meta app,
+yours. The business clicks a button, signs in to Facebook in a popup, and you
+receive a business-scoped token and register their number for them — the
+version of this that a normal customer can actually complete. It needs Tech
+Provider status, App Review for the two WhatsApp permissions, and your own
+business verification.
+
+> **Not built.** The token exchange and number registration would be written
+> against an API this codebase cannot call until that approval exists, and
+> untested guesses about a payload shape are exactly what the rest of this
+> system refuses to do. Ask for it once the Meta app is approved.
+
+**C. One number — yours — sends for everyone.** Simplest, works today, one
+template. But every customer sees *your* business name rather than their
+supplier's, which undercuts the reason invoices are sent on WhatsApp at all;
+and one business's blocks and spam reports degrade the quality rating for all
+of them. Also not built — `SenderFactory` refuses when a tenant has not
+connected, rather than quietly falling back to a platform number.
 
 ---
 
@@ -170,6 +274,14 @@ exact Cloud API payload, bearer auth against the **tenant's own** credentials,
 Meta's error surfaced verbatim, a failure recorded rather than lost, refusal
 when unconnected (with nothing queued that could never send), drafts and
 missing numbers refused, and tenant isolation.
+
+`WhatsAppSettingsTest` — the owner can connect and an accountant cannot,
+credentials are checked with Meta before being stored, a token Meta rejected is
+never stored, the token is not flashed into the session and never rendered
+back, test mode saves without calling Meta and says so on screen, re-checking
+refreshes the display number, disconnecting keeps the delivery history, the
+number pasted into the id field is refused, and connecting one business leaves
+another untouched.
 
 `WhatsAppWebhookTest` — the verification handshake, rejection of unsigned and
 wrongly-signed callbacks, rejection when unconfigured, the status ladder

@@ -36,5 +36,15 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SenderFactory::class);
 
         Gate::define('manage-payroll', fn (User $user) => $user->isOwner() || $user->isAccountant());
+
+        /*
+         | Who can change the business's own settings.
+         |
+         | Narrower than manage-payroll on purpose: connecting WhatsApp stores
+         | a bearer credential that can message customers AS the business, and
+         | changing it changes who those customers hear from. That is the
+         | owner's decision, not the visiting accountant's.
+         */
+        Gate::define('manage-settings', fn (User $user) => $user->isOwner());
     }
 }

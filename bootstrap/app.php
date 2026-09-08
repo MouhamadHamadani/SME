@@ -64,6 +64,15 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*
+         | A failed validation flashes the submitted input back into the
+         | session so the form can repopulate. `access_token` is a Meta bearer
+         | credential that can message customers as the business — it must
+         | never sit in a session payload waiting to be re-rendered. Laravel
+         | already excludes `password`; this is the same category.
+         */
+        $exceptions->dontFlash(['access_token']);
+
+        /*
          | An unknown subdomain is a wrong address, not a server fault. stancl
          | throws TenantCouldNotBeIdentified..., which would otherwise surface
          | as a 500 — and in production a 500 page is also a louder signal to

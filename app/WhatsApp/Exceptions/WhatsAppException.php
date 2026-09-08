@@ -10,7 +10,7 @@ class WhatsAppException extends RuntimeException
     {
         return new self(
             "{$business} has not connected a WhatsApp number. Add the Meta phone number id and "
-            .'access token with `php artisan whatsapp:connect` before sending.'
+            .'access token under Settings → WhatsApp before sending.'
         );
     }
 
