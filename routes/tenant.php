@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EmployeeController;
 use App\Http\Controllers\App\PayrollController;
+use App\Http\Controllers\App\VatController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Middleware\SetAppLocale;
 use App\Http\Middleware\TenantRouteParameter;
@@ -49,6 +50,10 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
             Route::get('/payroll', [PayrollController::class, 'index'])->name('app.payroll');
             Route::post('/payroll', [PayrollController::class, 'store'])->name('app.payroll.draft');
             Route::post('/payroll/finalise', [PayrollController::class, 'finalise'])->name('app.payroll.finalise');
+
+            Route::get('/vat', [VatController::class, 'index'])->name('app.vat');
+            Route::post('/vat', [VatController::class, 'store'])->name('app.vat.draft');
+            Route::post('/vat/file', [VatController::class, 'file'])->name('app.vat.file');
 
             Route::get('/employees', [EmployeeController::class, 'index'])->name('app.employees.index');
             Route::get('/employees/new', [EmployeeController::class, 'create'])->name('app.employees.create');

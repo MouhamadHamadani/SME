@@ -16,11 +16,15 @@ Launch blockers and placeholder content are in
 1. **Public marketing site** — homepage, bilingual content, lead capture.
 2. **App foundation** — stancl/tenancy v3 (one database per business, subdomain
    resolution), sign-in, and an authenticated shell reusing the same components.
-3. **Payroll & NSSF** — money primitives, the contribution engine, effective-dated
-   rate schedules, payroll runs, and a read-only payroll screen.
-   **Read [docs/PAYROLL.md](docs/PAYROLL.md) before touching it.**
+3. **Payroll & NSSF** — the contribution engine, effective-dated rate
+   schedules, payroll runs, employee management.
+   **Read [docs/PAYROLL.md](docs/PAYROLL.md) first.**
+4. **VAT** — net/gross calculation, quarterly returns, credit carry-forward.
+   **Read [docs/VAT.md](docs/VAT.md) first.**
 
-No VAT, no invoicing, no billing, no self-serve signup.
+How to run it and sign in as a tenant: **[docs/RUNNING.md](docs/RUNNING.md)**.
+
+No invoicing, no billing, no self-serve signup.
 
 ## Hard rules
 
@@ -40,6 +44,12 @@ No VAT, no invoicing, no billing, no self-serve signup.
 - **Route order is load-bearing.** bootstrap/app.php registers tenant routes
   before marketing routes and applies `web` to both. Read the comment there
   before touching it.
+- **Money lives in `App\Support\Money`** (integer minor units, never float).
+  Adding LBP to USD throws. VAT has TWO directions — `fromNet` adds tax on
+  top, `fromGross` extracts it from within; using the wrong one inflates
+  every line.
+- **Zero-rated is not exempt.** Zero-rated counts as taxable turnover and its
+  input VAT is recoverable; exempt does neither. Tests pin both.
 - **Never hard-code a contribution rate, ceiling or tax bracket.** They are
   effective-dated data in `nssf_rate_schedules`, and payroll REFUSES to run
   when none covers the period. A payroll that computes from guessed figures is
@@ -89,7 +99,8 @@ php artisan migrate
 php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
-./vendor/bin/pest      # 125 tests
+php artisan vat:schedule    # VAT rates: none ship either
+./vendor/bin/pest      # 168 tests
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at
@@ -98,7 +109,7 @@ rebuild.
 
 ## Not built yet (deliberate)
 
-VAT returns · invoicing · family-allowance benefit ·
+Invoicing · VAT transaction-entry screen · family-allowance benefit ·
 part-month pro-rating · self-serve signup and Whish/OMT billing (Phase 2) ·
 password reset · CRM or email automation · final logo · native-reviewed
 Arabic · real photography. Payroll gaps are listed in docs/PAYROLL.md §6.

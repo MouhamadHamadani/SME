@@ -132,6 +132,25 @@ final readonly class Money
     }
 
     /**
+     * The tax portion of a TAX-INCLUSIVE amount.
+     *
+     * At 11%, the VAT inside a 111,000 gross is 11,000 — not 12,210. Taking
+     * `percentBps` of a gross figure is the single most common VAT error, so
+     * the two directions are deliberately different methods with different
+     * names rather than one method and a flag.
+     *
+     *   vat = gross * bps / (10000 + bps)
+     */
+    public function taxWithinBps(int $bps): self
+    {
+        if ($bps < 0) {
+            throw new InvalidArgumentException('Basis points cannot be negative.');
+        }
+
+        return new self(self::divideRoundHalfUp($this->minorUnits * $bps, 10_000 + $bps), $this->currency);
+    }
+
+    /**
      * Convert using an exchange rate expressed as whole LBP per 1 USD
      * (e.g. 89500). That is how the rate is quoted in Lebanon, and holding it
      * as an integer keeps the conversion reproducible for an audit years later.

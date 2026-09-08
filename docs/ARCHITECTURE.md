@@ -15,6 +15,10 @@ the product cannot drift apart.
    reuses the marketing component library unchanged.
 3. **Payroll & NSSF** — exact-integer money, the contribution engine,
    effective-dated rate schedules, immutable runs. See **[PAYROLL.md](PAYROLL.md)**.
+4. **VAT** — net/gross calculation, quarterly returns, credit carry-forward.
+   See **[VAT.md](VAT.md)**.
+
+Running it and signing in as a tenant: **[RUNNING.md](RUNNING.md)**.
 
 Laravel 13 · Tailwind 4 · Blade (no Livewire — nothing needs it yet) ·
 stancl/tenancy v3 · MySQL · Pest.
@@ -22,7 +26,7 @@ stancl/tenancy v3 · MySQL · Pest.
 **No regulatory figures ship with the system.** Rates and ceilings are
 effective-dated data, and payroll refuses to run without them rather than
 computing from a guess — see [PAYROLL.md §1](PAYROLL.md#1-the-figures-are-data-not-code).
-VAT and invoicing are not built.
+Invoicing is not built.
 
 ---
 
@@ -37,8 +41,8 @@ also makes "export or delete everything for this business" one operation.
 
 | | |
 |---|---|
-| Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs`, `nssf_rate_schedules` |
-| Tenant DB | `users`, `employees`, `payroll_runs`, `payroll_lines` |
+| Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs`, `nssf_rate_schedules`, `vat_rate_schedules` |
+| Tenant DB | `users`, `employees`, `payroll_runs`, `payroll_lines`, `vat_transactions`, `vat_returns` |
 | Tenant model | `App\Models\Tenant` — uuid, name, plan, `wa_phone_number`, `settings` JSON |
 | Resolution | `acme.{app_domain}` → tenant `acme` |
 | Domain source | `config('tenancy.app_domain')`, derived from `APP_URL` — **one** source of truth for routing and provisioning |
@@ -110,6 +114,7 @@ Do not merge the two.
 | `GET /login` · `POST /login` | `app.login` · `app.login.attempt` | `{tenant}.` |
 | `GET /` | `app.dashboard` | `{tenant}.` |
 | `GET/POST /payroll`, `POST /payroll/finalise` | `app.payroll*` | `{tenant}.` |
+| `GET/POST /vat`, `POST /vat/file` | `app.vat*` | `{tenant}.` |
 | `/employees` CRUD | `app.employees.*` | `{tenant}.` |
 | `POST /logout` · `POST /locale` | `app.logout` · `app.locale` | `{tenant}.` |
 
@@ -275,7 +280,7 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. 125 tests.
+Pest, `./vendor/bin/pest`. 168 tests.
 
 **Marketing**
 
@@ -307,6 +312,11 @@ Pest, `./vendor/bin/pest`. 125 tests.
 - `MoneyTest`, `NssfCalculatorTest` — the engine, on fixture rates
 - `PayrollRunTest`, `PayrollScreenTest` — runs, snapshots, the finalise gate
 - `EmployeeManagementTest` — salary parsing, the role gate, CRUD, drafting
+
+**VAT** — see [VAT.md](VAT.md)
+
+- `VatCalculatorTest` — net vs gross, zero-rated vs exempt, rounding
+- `VatReturnTest`, `VatScreenTest` — returns, carry-forward, the filing gate
 
 ---
 

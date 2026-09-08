@@ -3,6 +3,7 @@
 use App\Models\NssfRateSchedule;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VatRateSchedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -90,6 +91,30 @@ function schedule(array $overrides = []): NssfRateSchedule
 function verified(array $overrides = []): NssfRateSchedule
 {
     return schedule(array_merge(['verified_at' => now(), 'verified_by' => 'Tester'], $overrides));
+}
+
+/**
+ * A VAT rate schedule in the CENTRAL database.
+ *
+ * 11% is a TEST FIXTURE, like the NSSF figures above — the system is told its
+ * rates, it never assumes them. See docs/VAT.md.
+ */
+function vatSchedule(array $overrides = []): VatRateSchedule
+{
+    return VatRateSchedule::create(array_merge([
+        'effective_from' => '2020-01-01',
+        'effective_to' => null,
+        'standard_rate_bps' => 1100,
+        'registration_threshold_lbp' => 100_000_000,
+        'filing_deadline_days' => 20,
+        'source_note' => 'Test fixture',
+    ], $overrides));
+}
+
+/** The same, signed off — required before a return can be filed. */
+function vatVerified(array $overrides = []): VatRateSchedule
+{
+    return vatSchedule(array_merge(['verified_at' => now(), 'verified_by' => 'Tester'], $overrides));
 }
 
 /** Full URL for a tenant subdomain, e.g. http://acme.sme.test/login */
