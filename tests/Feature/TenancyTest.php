@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\Lead;
 use App\Models\Tenant;
 use App\Models\User;
@@ -168,4 +169,43 @@ describe('tenant:create', function () {
             '--owner-email' => 'x@example.com',
         ])->assertFailed();
     });
+});
+
+it('binds a route model rather than passing the tenant subdomain positionally', function () {
+    /*
+     | Regression, and a nasty one: tenant routes sit under
+     | Route::domain('{tenant}.…'), so `tenant` is the route's FIRST parameter.
+     | Laravel passes route parameters to controllers positionally, so a
+     | controller declaring `edit(Employee $employee)` received the string
+     | "acme" — even though implicit binding had resolved the Employee.
+     |
+     | Every future route that takes a model would hit this. TenantRouteParameter
+     | forgets the parameter once tenancy is initialized.
+     */
+    $tenant = makeTenant('acme');
+    makeTenantUser($tenant, ['email' => 'owner@acme.test', 'role' => 'owner']);
+    $tenant->run(fn () => Employee::factory()->create(['name' => 'Bound Correctly']));
+
+    tenancy()->initialize($tenant);
+    $employee = Employee::sole();
+
+    test()->actingAs(User::where('role', 'owner')->sole())
+        ->get(tenantUrl('acme', '/employees/'.$employee->id))
+        ->assertOk()
+        ->assertSee('Bound Correctly');
+});
+
+it('still generates tenant URLs after forgetting the parameter', function () {
+    // Forgetting `tenant` must not break route(); URL::defaults covers it.
+    $tenant = makeTenant('acme');
+    makeTenantUser($tenant, ['email' => 'owner@acme.test', 'role' => 'owner']);
+
+    tenancy()->initialize($tenant);
+
+    test()->actingAs(User::sole())
+        ->get(tenantUrl('acme', '/employees'))
+        ->assertOk()
+        // Links in the page carry the subdomain rather than throwing
+        // UrlGenerationException for a missing parameter.
+        ->assertSee(tenantUrl('acme', '/employees/new'), false);
 });

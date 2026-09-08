@@ -132,8 +132,22 @@ php artisan nssf:schedule
 Adding a schedule automatically closes the previous open-ended one the day
 before, so periods never overlap.
 
-Employees are seeded via the model/factory for now — there is no employee CRUD
-screen yet (§6).
+Employees are managed in the app: **Employees** in the top nav. Payroll can
+also be drafted and finalised from the **Payroll** screen — the CLI is for
+automation, not the only way in.
+
+### Who can do what
+
+| | View payroll & employees | Add/edit employees, draft, finalise |
+|---|---|---|
+| Owner | yes | yes |
+| Accountant | yes | yes |
+| Staff | yes | **no** |
+
+Accountant seats are a Pro-plan feature, and doing this is what the seat is
+for. Staff being read-only is an ASSUMPTION, not a stated requirement —
+salary data is the most sensitive thing in the product. Change it in
+`AppServiceProvider` (`manage-payroll` gate) if staff need to maintain the list.
 
 ---
 
@@ -141,8 +155,6 @@ screen yet (§6).
 
 Deliberate omissions, roughly in the order they matter:
 
-- **Employee CRUD screen.** Employees are created in code. The payroll screen
-  is read-only.
 - **Family allowance benefit.** The amount NSSF pays back per spouse and child.
   Dependents are already stored; the per-dependent amounts are more
   regulatory data, and would go in the same effective-dated schedule.

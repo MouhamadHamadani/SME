@@ -40,6 +40,42 @@ final readonly class Money
         return new self($cents, Currency::USD);
     }
 
+    /**
+     * Parse what a person typed into a salary field.
+     *
+     * Entirely string arithmetic — casting "1234.56" through a float and
+     * multiplying by 100 lands on 123455.99999999999, and that becomes a
+     * salary a cent light forever. Thousands separators and spaces are
+     * tolerated because people paste from spreadsheets.
+     *
+     * More decimal places than the currency has is rejected rather than
+     * rounded: "1200000.5" LBP is a typo, and silently dropping the .5 is how
+     * you end up explaining a payslip.
+     */
+    public static function parse(string $input, Currency $currency): self
+    {
+        $clean = str_replace([',', ' ', "\u{00A0}"], '', trim($input));
+
+        if ($clean === '' || ! preg_match('/^(-?)(\d+)(?:\.(\d+))?$/', $clean, $m)) {
+            throw new InvalidArgumentException("\"{$input}\" is not an amount.");
+        }
+
+        [$sign, $whole, $fraction] = [$m[1], $m[2], $m[3] ?? ''];
+        $scale = $currency->scale();
+
+        if (strlen($fraction) > $scale) {
+            throw new InvalidArgumentException(
+                $scale === 0
+                    ? "{$currency->value} amounts are whole numbers."
+                    : "{$currency->value} amounts take at most {$scale} decimal places."
+            );
+        }
+
+        $minor = (int) ($whole.str_pad($fraction, $scale, '0'));
+
+        return new self($sign === '-' ? -$minor : $minor, $currency);
+    }
+
     public function isZero(): bool
     {
         return $this->minorUnits === 0;

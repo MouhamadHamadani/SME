@@ -1,3 +1,5 @@
+@php $canManage = auth()->user()->can('manage-payroll'); @endphp
+
 <x-layouts.app :title="__('app.payroll.heading')">
     <div class="flex flex-wrap items-baseline justify-between gap-3">
         <h1 class="text-2xl font-bold tracking-tight text-trust-navy sm:text-3xl">
@@ -15,6 +17,25 @@
             </div>
         @endif
     </div>
+
+    <p class="mt-2 text-warm-charcoal/80">
+        <a href="{{ route('app.employees.index') }}" class="rounded font-medium text-trust-navy underline underline-offset-4">
+            {{ __('app.payroll.employees_link') }}
+        </a>
+        <span class="text-warm-charcoal/70">&middot; {{ __('app.payroll.employee_count', ['count' => $employeeCount]) }}</span>
+    </p>
+
+    @if (session('status'))
+        <x-card tone="light" accent="green" class="mt-6" role="status">
+            <p class="font-medium text-warm-charcoal">{{ session('status') }}</p>
+        </x-card>
+    @endif
+
+    @error('finalise')
+        <x-card tone="light" accent="overdue" class="mt-6">
+            <p class="font-medium text-warm-charcoal">{{ $message }}</p>
+        </x-card>
+    @enderror
 
     @if (! $schedule)
         {{-- The honest empty state: we cannot compute, so we say so rather
@@ -34,7 +55,43 @@
             </p>
             <pre dir="ltr" class="mt-4 overflow-x-auto rounded-lg bg-warm-charcoal/5 p-3 text-start text-xs text-warm-charcoal/80"><code>{{ __('app.payroll.no_runs_hint') }}</code></pre>
         </x-card>
-    @else
+    @endif
+
+    @if ($schedule && $canManage && $employeeCount > 0)
+        {{-- Draft a month. Finalising is deliberately a separate action. --}}
+        <x-card tone="light" class="mt-8">
+            <h2 class="text-lg font-semibold text-trust-navy">{{ __('app.payroll.draft_run') }}</h2>
+
+            <form method="POST" action="{{ route('app.payroll.draft') }}" class="mt-4">
+                @csrf
+                <div class="grid gap-4 sm:grid-cols-4 sm:items-end">
+                    <x-form.input
+                        name="period_year" type="number"
+                        :label="__('app.payroll.year')"
+                        :value="old('period_year', $defaultPeriod->year)"
+                        min="2000" max="2100" dir="ltr" required
+                    />
+                    <x-form.input
+                        name="period_month" type="number"
+                        :label="__('app.payroll.month')"
+                        :value="old('period_month', $defaultPeriod->month)"
+                        min="1" max="12" dir="ltr" required
+                    />
+                    <x-form.input
+                        name="lbp_per_usd" type="number"
+                        :label="__('app.payroll.rate')"
+                        :value="old('lbp_per_usd', $defaultRate ?: null)"
+                        min="1" dir="ltr" required
+                    />
+                    <x-button type="submit" variant="primary" size="md" class="w-full">
+                        {{ __('app.payroll.draft_submit') }}
+                    </x-button>
+                </div>
+            </form>
+        </x-card>
+    @endif
+
+    @if ($schedule && $run)
         @unless ($ratesVerified)
             <x-card tone="light" accent="due-soon" class="mt-6">
                 <h2 class="font-semibold text-trust-navy">{{ __('app.payroll.unverified_heading') }}</h2>

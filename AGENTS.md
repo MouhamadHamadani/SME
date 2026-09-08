@@ -32,6 +32,11 @@ No VAT, no invoicing, no billing, no self-serve signup.
   `cache` and `jobs` connections are pinned to the central connection. Unpinning
   any of them makes every authenticated page 500, and the test suite's array
   drivers will NOT catch it.
+- **Never remove `TenantRouteParameter` from the tenant route group.** Without
+  it, route parameters are passed positionally and every controller taking a
+  model receives the tenant subdomain string instead. Read its docblock first.
+- **Payroll changes are gated on `manage-payroll`** (owner + accountant). The
+  base Controller carries AuthorizesRequests so `$this->authorize()` works.
 - **Route order is load-bearing.** bootstrap/app.php registers tenant routes
   before marketing routes and applies `web` to both. Read the comment there
   before touching it.
@@ -84,7 +89,7 @@ php artisan migrate
 php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
-./vendor/bin/pest      # 102 tests
+./vendor/bin/pest      # 125 tests
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at
@@ -93,7 +98,7 @@ rebuild.
 
 ## Not built yet (deliberate)
 
-VAT returns · invoicing · employee CRUD · family-allowance benefit ·
+VAT returns · invoicing · family-allowance benefit ·
 part-month pro-rating · self-serve signup and Whish/OMT billing (Phase 2) ·
 password reset · CRM or email automation · final logo · native-reviewed
 Arabic · real photography. Payroll gaps are listed in docs/PAYROLL.md §6.

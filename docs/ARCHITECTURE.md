@@ -109,6 +109,8 @@ Do not merge the two.
 | `POST /early-access` | `marketing.leads.store` | central |
 | `GET /login` · `POST /login` | `app.login` · `app.login.attempt` | `{tenant}.` |
 | `GET /` | `app.dashboard` | `{tenant}.` |
+| `GET/POST /payroll`, `POST /payroll/finalise` | `app.payroll*` | `{tenant}.` |
+| `/employees` CRUD | `app.employees.*` | `{tenant}.` |
 | `POST /logout` · `POST /locale` | `app.logout` · `app.locale` | `{tenant}.` |
 
 > **Route ORDER is load-bearing, and the defaults get it wrong.**
@@ -121,6 +123,17 @@ Do not merge the two.
 > middleware group to both files (taking over registration means it is no longer
 > applied for you — losing it silently breaks CSRF and sessions on the lead form).
 > `TenancyTest` has a regression test for the shadowing case.
+
+> **The `{tenant}` domain parameter is a trap for route model binding.**
+> Tenant routes sit under `Route::domain('{tenant}.…')`, so `tenant` is the
+> route's FIRST parameter — and Laravel passes route parameters to controllers
+> POSITIONALLY. A controller declaring `edit(Employee $employee)` therefore
+> received the string `"acme"`, even though implicit binding had resolved the
+> Employee correctly. Every route that takes a model hits this.
+> `TenantRouteParameter` forgets the parameter once tenancy is initialized, and
+> registers the URL default so `route()` still works. stancl does the same for
+> PATH identification; subdomain identification has no equivalent.
+> `TenancyTest` has a regression test.
 
 On the marketing side locale is carried **in the URL, not the session**, so a link shared on WhatsApp —
 or an ad destination — keeps its language, and each locale is separately
@@ -262,7 +275,7 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. 59 tests.
+Pest, `./vendor/bin/pest`. 125 tests.
 
 **Marketing**
 
@@ -288,6 +301,12 @@ Pest, `./vendor/bin/pest`. 59 tests.
   rate limiting; Arabic RTL by default; language preference persisted; `noindex`
 - `TenantInfrastructureTest` — the central/tenant table split, and the
   database-driver session/cache path the array drivers hide
+
+**Payroll** — see [PAYROLL.md](PAYROLL.md)
+
+- `MoneyTest`, `NssfCalculatorTest` — the engine, on fixture rates
+- `PayrollRunTest`, `PayrollScreenTest` — runs, snapshots, the finalise gate
+- `EmployeeManagementTest` — salary parsing, the role gate, CRUD, drafting
 
 ---
 

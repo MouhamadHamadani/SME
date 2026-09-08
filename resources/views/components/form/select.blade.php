@@ -6,6 +6,8 @@
     'hint' => null,
     'optional' => null,
     'required' => false,
+    // Current selection for an edit form; a failed submission still wins.
+    'selected' => null,
 ])
 
 @php
@@ -41,7 +43,7 @@
     >
         <option value="">{{ $placeholder }}</option>
         @foreach ($options as $value => $text)
-            <option value="{{ $value }}" @selected(old($name) === $value)>{{ $text }}</option>
+            <option value="{{ $value }}" @selected((string) old($name, $selected) === (string) $value)>{{ $text }}</option>
         @endforeach
     </select>
 </x-form.field>

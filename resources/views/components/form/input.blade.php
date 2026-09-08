@@ -6,6 +6,9 @@
     'optional' => null,
     'required' => false,
     'autocomplete' => null,
+    // Current value for an edit form. A failed submission still wins, so the
+    // person sees what they typed rather than what was stored.
+    'value' => null,
 ])
 
 @php
@@ -33,7 +36,7 @@
         id="{{ $name }}"
         name="{{ $name }}"
         type="{{ $type }}"
-        value="{{ old($name) }}"
+        value="{{ old($name, $value) }}"
         @if ($autocomplete) autocomplete="{{ $autocomplete }}" @endif
         @if ($required) required aria-required="true" @endif
         @if ($error) aria-invalid="true" @endif

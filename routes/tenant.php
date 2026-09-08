@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\App\DashboardController;
+use App\Http\Controllers\App\EmployeeController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Middleware\SetAppLocale;
-use App\Http\Middleware\ShareTenantUrlDefault;
+use App\Http\Middleware\TenantRouteParameter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
@@ -30,7 +31,7 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
         // `web` is applied by bootstrap/app.php for both route files.
         InitializeTenancyBySubdomain::class,
         PreventAccessFromCentralDomains::class,
-        ShareTenantUrlDefault::class,
+        TenantRouteParameter::class,
         SetAppLocale::class,
     ])
     ->group(function () {
@@ -45,7 +46,16 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
         // Signed in
         Route::middleware('auth')->group(function () {
             Route::get('/', DashboardController::class)->name('app.dashboard');
-            Route::get('/payroll', PayrollController::class)->name('app.payroll');
+            Route::get('/payroll', [PayrollController::class, 'index'])->name('app.payroll');
+            Route::post('/payroll', [PayrollController::class, 'store'])->name('app.payroll.draft');
+            Route::post('/payroll/finalise', [PayrollController::class, 'finalise'])->name('app.payroll.finalise');
+
+            Route::get('/employees', [EmployeeController::class, 'index'])->name('app.employees.index');
+            Route::get('/employees/new', [EmployeeController::class, 'create'])->name('app.employees.create');
+            Route::post('/employees', [EmployeeController::class, 'store'])->name('app.employees.store');
+            Route::get('/employees/{employee}', [EmployeeController::class, 'edit'])->name('app.employees.edit');
+            Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('app.employees.update');
+            Route::post('/employees/{employee}/end', [EmployeeController::class, 'end'])->name('app.employees.end');
             Route::post('/logout', [LoginController::class, 'destroy'])->name('app.logout');
         });
 

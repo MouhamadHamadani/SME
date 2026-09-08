@@ -54,7 +54,7 @@ return Application::configure(basePath: dirname(__DIR__))
          | throws RouteNotFoundException (a 500) instead of redirecting.
          |
          | The tenant parameter is read off the request rather than left to
-         | ShareTenantUrlDefault's URL::defaults — Laravel's middleware priority
+         | TenantRouteParameter's URL::defaults — Laravel's middleware priority
          | runs Authenticate before unprioritised middleware, so the default is
          | not reliably registered yet at this point.
          */
