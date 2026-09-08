@@ -132,6 +132,28 @@ final readonly class Money
     }
 
     /**
+     * Scale by an exact ratio, rounding ONCE.
+     *
+     * `percentBps` applied twice rounds twice and compounds the error. An
+     * end-of-service indemnity is `average x coefficient x years`, three terms
+     * that have to be combined in one division or the person is paid a
+     * slightly wrong number. This routes through the same single rounding
+     * helper as everything else — it is not a second rounding site.
+     */
+    public function scaleBy(int $numerator, int $denominator): self
+    {
+        if ($denominator === 0) {
+            throw new InvalidArgumentException('Cannot scale by a zero denominator.');
+        }
+
+        if ($numerator < 0 || $denominator < 0) {
+            throw new InvalidArgumentException('Scaling a money amount by a negative ratio is not meaningful here.');
+        }
+
+        return new self(self::divideRoundHalfUp($this->minorUnits * $numerator, $denominator), $this->currency);
+    }
+
+    /**
      * The tax portion of a TAX-INCLUSIVE amount.
      *
      * At 11%, the VAT inside a 111,000 gross is 11,000 — not 12,210. Taking

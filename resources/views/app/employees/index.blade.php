@@ -41,9 +41,7 @@
                             <th class="whitespace-nowrap px-5 py-3 text-start font-semibold text-warm-charcoal">
                                 {{ $key === 'former' ? __('app.employees.ended_on') : __('app.employees.service') }}
                             </th>
-                            @if ($canManage)
-                                <th class="px-5 py-3 text-end font-semibold text-warm-charcoal"><span class="sr-only">{{ __('app.employees.edit') }}</span></th>
-                            @endif
+                            <th class="px-5 py-3 text-end font-semibold text-warm-charcoal"><span class="sr-only">{{ __('app.employees.edit') }}</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,14 +71,19 @@
                                         {{ __('app.employees.months', ['count' => $employee->serviceMonthsAt(now())]) }}
                                     @endif
                                 </td>
-                                @if ($canManage)
-                                    <td class="whitespace-nowrap px-5 py-3 text-end">
+                                {{-- End of service is readable by any signed-in user; editing is not. --}}
+                                <td class="whitespace-nowrap px-5 py-3 text-end">
+                                    <a href="{{ route('app.employees.eosi', $employee) }}"
+                                       class="rounded font-medium text-trust-navy underline-offset-4 hover:underline">
+                                        {{ __('app.eosi.view') }}
+                                    </a>
+                                    @if ($canManage)
                                         <a href="{{ route('app.employees.edit', $employee) }}"
-                                           class="rounded font-medium text-trust-navy underline-offset-4 hover:underline">
+                                           class="ms-4 rounded font-medium text-trust-navy underline-offset-4 hover:underline">
                                             {{ __('app.employees.edit') }}
                                         </a>
-                                    </td>
-                                @endif
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

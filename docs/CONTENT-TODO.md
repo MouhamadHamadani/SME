@@ -134,16 +134,30 @@ for testimonials that cannot exist pre-launch. Needs:
 
 ---
 
-## 7. Source documents were not in the repo
+## 7. Source documents — knowledge base RESOLVED, design brief still missing
 
-`docs/knowledge-base.md` and `docs/design-brief.md` were not present anywhere on
-this machine when the site was built, so the build used the spec inlined in the
-build request (palette, tokens, the six-section homepage flow, §7 pricing, §5
-competitive framing, §4 pain points, §6 phasing, §10 go-to-market).
+**`docs/knowledge-base.md` is now in the repository** (added 8 September 2026).
+The payroll and dual-currency work has been checked against it directly — see
+[EOSI-STATUS.md](EOSI-STATUS.md) and [DUAL-CURRENCY-STATUS.md](DUAL-CURRENCY-STATUS.md),
+and one real correction came out of it (§9 requires an NSSF enrolment date on
+Employee, which the first cut of EOSI did not have).
 
-**Add both documents to `docs/` when you have them**, and re-check this site
-against them — particularly anything in §5 and §7 that the inlined summary may
-have compressed.
+**`docs/design-brief.md` is still missing.** The marketing site was built from
+the spec inlined in the original build request — palette, tokens, the
+six-section homepage flow, §5 competitive framing, §4 pain points. Add it and
+re-check the site against it.
+
+One spot-check done against the now-present knowledge base: §11 warns that
+leading with "the only one with NSSF" is no longer accurate, because Azkatech
+is a real competitor on that wedge. **The homepage does not make that claim** —
+it leads with "The combination nobody else sells you", which is §5's corrected
+framing. Nothing to fix there.
+
+One claim is worth a second look, though: the WhatsApp feature card is tagged
+*"Nobody in this category ships it"*. That is a competitive assertion nobody
+has verified against Azkatech or the regional ERPs, and it is the kind of line
+a competitor notices. The rest of the site has not been re-read against the
+knowledge base.
 
 ---
 

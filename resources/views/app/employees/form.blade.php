@@ -74,6 +74,15 @@
                         required
                     />
                     <x-form.input
+                        name="nssf_enrolled_on"
+                        type="date"
+                        :label="__('app.employees.nssf_enrolled_on')"
+                        :hint="__('app.employees.nssf_enrolled_on_hint')"
+                        :optional="__('app.employees.same_as_start')"
+                        :value="old('nssf_enrolled_on', $employee->nssf_enrolled_on?->toDateString())"
+                        dir="ltr"
+                    />
+                    <x-form.input
                         name="ended_on"
                         type="date"
                         :label="__('app.employees.ended_on')"

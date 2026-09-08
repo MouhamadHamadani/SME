@@ -3,6 +3,7 @@
 namespace App\Payroll;
 
 use App\Models\Employee;
+use App\Models\ExchangeRate;
 use App\Models\NssfRateSchedule;
 use App\Models\PayrollLine;
 use App\Models\PayrollRun;
@@ -58,7 +59,7 @@ class RunPayroll
          * on InnoDB — MyISAM would silently leave the partial write in place.
          */
         return DB::transaction(function () use (
-            $existing, $year, $month, $lbpPerUsd, $schedule, $rates, $employees
+            $existing, $year, $month, $lbpPerUsd, $schedule, $rates, $employees, $periodEnd
         ) {
             $run = $existing ?? new PayrollRun;
 
@@ -66,6 +67,14 @@ class RunPayroll
                 'period_year' => $year,
                 'period_month' => $month,
                 'lbp_per_usd' => $lbpPerUsd,
+                /*
+                 * The Ministry's prescribed rate for the period, snapshotted
+                 * beside the rate the run computed at. A USD salary reported to
+                 * the MoF converts at this one, not at `lbp_per_usd` — §3.6.
+                 * Null when none was entered; the refusal lives at the point a
+                 * filing figure is produced, not here.
+                 */
+                'mof_rate_lbp_per_usd' => ExchangeRate::asOf($periodEnd)?->mof_rate_lbp_per_usd,
                 'nssf_rate_schedule_id' => $schedule->id,
                 'status' => 'draft',
                 'finalised_at' => null,

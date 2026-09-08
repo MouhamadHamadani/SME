@@ -29,6 +29,7 @@ class Employee extends Model
         'dependent_children',
         'is_nssf_registered',
         'started_on',
+        'nssf_enrolled_on',
         'ended_on',
     ];
 
@@ -41,6 +42,7 @@ class Employee extends Model
             'dependent_children' => 'integer',
             'is_nssf_registered' => 'boolean',
             'started_on' => 'date',
+            'nssf_enrolled_on' => 'date',
             'ended_on' => 'date',
         ];
     }
@@ -48,6 +50,17 @@ class Employee extends Model
     public function payrollLines(): HasMany
     {
         return $this->hasMany(PayrollLine::class);
+    }
+
+    /** Bonuses and overtime. Read by the EOSI accrual, not by payroll. */
+    public function payElements(): HasMany
+    {
+        return $this->hasMany(EmployeePayElement::class)->orderByDesc('paid_on');
+    }
+
+    public function eosiAccruals(): HasMany
+    {
+        return $this->hasMany(EosiAccrual::class)->orderByDesc('as_of');
     }
 
     public function baseSalary(): Money
@@ -78,6 +91,28 @@ class Employee extends Model
         $end = $this->ended_on && $this->ended_on->lt($date) ? $this->ended_on : $date;
 
         return max(0, $this->started_on->diffInMonths($end));
+    }
+
+    /**
+     * Whole months of NSSF enrolment at a given date — the basis for the EOSI
+     * SENIORITY COEFFICIENT, which §3.2 writes in terms of enrolment years
+     * rather than service years.
+     *
+     * A different clock from service: someone can work for years before their
+     * employer declares them, and late declaration is common enough here that
+     * conflating the two would quietly overstate the coefficient. Null means
+     * enrolled from the start date, which is the ordinary case.
+     */
+    public function enrolmentMonthsAt(Carbon $date): int
+    {
+        if (! $this->is_nssf_registered && ! $this->nssf_enrolled_on) {
+            return 0;
+        }
+
+        $start = $this->nssf_enrolled_on ?? $this->started_on;
+        $end = $this->ended_on && $this->ended_on->lt($date) ? $this->ended_on : $date;
+
+        return max(0, $start->diffInMonths($end));
     }
 
     /** Total dependents, as the NSSF declaration counts them. */

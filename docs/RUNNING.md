@@ -126,6 +126,36 @@ php artisan vat:schedule --verify=1 --by="Your name"
 Until a schedule is **verified**, you can draft and read the numbers but not
 finalise or file. That gate is deliberate.
 
+### Exchange rates
+
+Lebanon has two rates and they are used for different things — the market rate
+for the business's own books, the Ministry-prescribed rate for anything filed
+(see [DUAL-CURRENCY-STATUS.md](DUAL-CURRENCY-STATUS.md)). Both are national, so
+they are entered centrally by the operator rather than by each business:
+
+```bash
+php artisan exchange:rate --date=2026-09-08 --market=<LBP> --mof=<LBP> \
+  --source="BDL circular / parallel market close"
+php artisan exchange:rate --verify=1 --by="Your name"
+php artisan exchange:rate --list
+```
+
+Same gate as the others: **nothing may be filed against an unverified Ministry
+rate.** Changing a figure clears its verification.
+
+A business sets its own booking rate in the app, under Settings → Exchange
+rates. That is a different number and it is theirs to set.
+
+### End-of-service estimates
+
+```bash
+php artisan eosi:accrue arzclinic            # today
+php artisan eosi:accrue arzclinic --date=2026-12-31
+```
+
+§9 calls this a *running* estimate, so it needs running — monthly or at year
+end. Each row records the formula version that produced it.
+
 ---
 
 ## 5. Common situations
@@ -179,3 +209,19 @@ not exist at `globex`. Check which subdomain you are on.
 
 Tests use SQLite in memory and create real per-tenant SQLite files, cleaned up
 afterwards. They do not touch your MySQL databases.
+
+### The MySQL run
+
+SQLite forgives things MySQL does not — date comparison, strict mode,
+collation, storage engine — and two real defects here were exactly that
+divergence. Before a release, run the same suite against MySQL:
+
+```bash
+mysql -u root -e "CREATE DATABASE sme_test_central CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+./vendor/bin/pest -c phpunit.mysql.xml
+```
+
+This one **does** create and drop real databases (`sme_test_central` and a
+`tenant…` database per test), so point it at a local MySQL you do not mind it
+churning. It is much slower than the SQLite run — a pre-release gate, not the
+inner loop.

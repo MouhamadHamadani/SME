@@ -26,10 +26,20 @@ Launch blockers and placeholder content are in
    **Read [docs/INVOICING.md](docs/INVOICING.md) first.**
 6. **WhatsApp delivery** — Meta Cloud API, per-business credentials, signed
    delivery webhooks. **Read [docs/WHATSAPP.md](docs/WHATSAPP.md) first.**
+7. **Dual currency** — the market rate and the MoF-prescribed rate as two
+   independent daily figures, plus revaluation.
+   **Read [docs/DUAL-CURRENCY-STATUS.md](docs/DUAL-CURRENCY-STATUS.md) first.**
+8. **End-of-service indemnity** — seniority coefficients behind a swappable
+   strategy, formula-versioned accrual ledger.
+   **Read [docs/EOSI-STATUS.md](docs/EOSI-STATUS.md) first.**
+
+Tenancy is one database per business. Whether that should stay that way is an
+open business decision with a written recommendation:
+**[docs/ARCHITECTURE-DECISION-tenancy.md](docs/ARCHITECTURE-DECISION-tenancy.md)**.
 
 How to run it and sign in as a tenant: **[docs/RUNNING.md](docs/RUNNING.md)**.
 
-No invoicing, no billing, no self-serve signup.
+No billing and no self-serve signup.
 
 ## Hard rules
 
@@ -60,6 +70,18 @@ No invoicing, no billing, no self-serve signup.
   masked, not in `old()`. It is in `dontFlash` in bootstrap/app.php; leave it
   there. Connecting is gated on `manage-settings` (owner only), which is
   narrower than `manage-payroll` on purpose.
+- **The market rate and the MoF rate are INDEPENDENT.** Never derive, default
+  or fall back from one to the other — a missing rate is unknown, not equal to
+  the other one. `RateBasis` must be passed explicitly at every conversion, and
+  nothing may be FILED against an unverified MoF rate.
+- **Never inline the end-of-service formula.** It goes behind
+  `App\Payroll\Eosi\EosiStrategy`, which is pure (no database, no clock), and
+  every accrual row stores the strategy and version that produced it. Law 319
+  may replace the whole model; historical rows must keep saying what they said.
+- **A `date`-cast column does not equality-match a `Y-m-d` string** — the cast
+  writes `Y-m-d H:i:s`. Use `whereDate`. This has now caused two defects: the
+  dropped VAT quarter and a duplicated EOSI accrual, and the two engines
+  disagree about it.
 - **Money lives in `App\Support\Money`** (integer minor units, never float).
   Adding LBP to USD throws. VAT has TWO directions — `fromNet` adds tax on
   top, `fromGross` extracts it from within; using the wrong one inflates
@@ -128,7 +150,10 @@ php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
-./vendor/bin/pest      # 285 tests
+php artisan exchange:rate   # the day's market and Ministry LBP/USD rates
+php artisan eosi:accrue <business>   # freeze end-of-service estimates
+./vendor/bin/pest      # 318 tests (SQLite)
+./vendor/bin/pest -c phpunit.mysql.xml   # the same suite against real MySQL
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at

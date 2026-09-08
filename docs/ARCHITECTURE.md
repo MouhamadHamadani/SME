@@ -45,8 +45,8 @@ also makes "export or delete everything for this business" one operation.
 
 | | |
 |---|---|
-| Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs`, `nssf_rate_schedules`, `vat_rate_schedules` |
-| Tenant DB | `users`, `employees`, `payroll_runs`, `payroll_lines`, `vat_transactions`, `vat_returns`, `customers`, `invoices`, `invoice_lines`, `whatsapp_messages` |
+| Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs`, `nssf_rate_schedules`, `vat_rate_schedules`, `exchange_rates` |
+| Tenant DB | `users`, `employees`, `employee_pay_elements`, `eosi_accruals`, `payroll_runs`, `payroll_lines`, `vat_transactions`, `vat_returns`, `customers`, `invoices`, `invoice_lines`, `whatsapp_messages` |
 | Tenant model | `App\Models\Tenant` — uuid, name, plan, `wa_phone_number`, `settings` JSON |
 | Resolution | `acme.{app_domain}` → tenant `acme` |
 | Domain source | `config('tenancy.app_domain')`, derived from `APP_URL` — **one** source of truth for routing and provisioning |
@@ -290,7 +290,7 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. 285 tests.
+Pest, `./vendor/bin/pest`. 318 tests on SQLite; `./vendor/bin/pest -c phpunit.mysql.xml` runs the same suite against real MySQL, which is where engine differences show up.
 
 **Marketing**
 

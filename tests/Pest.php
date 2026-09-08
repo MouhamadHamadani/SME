@@ -29,8 +29,15 @@ pest()->afterEach(function () {
     // Tenant::delete() fires TenantDeleted -> Jobs\DeleteDatabase.
     rescue(fn () => Tenant::all()->each->delete(), report: false);
 
-    // Belt and braces: sweep any file a failed test left behind.
-    rescue(fn () => collect(File::glob(database_path('tenant*.sqlite')))
+    /*
+     * Belt and braces: sweep any file a failed test left behind.
+     *
+     * The glob has no `.sqlite` — `config('tenancy.database.suffix')` is an
+     * empty string, so stancl names these files `tenant<uuid>` with no
+     * extension. A `tenant*.sqlite` pattern matched nothing and quietly let
+     * failed tests litter database/ with untracked database files.
+     */
+    rescue(fn () => collect(File::glob(database_path('tenant*')))
         ->each(fn (string $path) => File::delete($path)), report: false);
 });
 

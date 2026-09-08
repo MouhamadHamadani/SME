@@ -28,6 +28,10 @@ class EmployeeRequest extends FormRequest
             'dependent_children' => ['required', 'integer', 'min:0', 'max:20'],
             'is_nssf_registered' => ['boolean'],
             'started_on' => ['required', 'date'],
+            // A different clock from the start date: EOSI seniority bands are
+            // written in NSSF enrolment years (KB §3.2, §9). Cannot precede
+            // the start date; null means declared from day one.
+            'nssf_enrolled_on' => ['nullable', 'date', 'after_or_equal:started_on'],
             'ended_on' => ['nullable', 'date', 'after_or_equal:started_on'],
         ];
     }
@@ -76,6 +80,7 @@ class EmployeeRequest extends FormRequest
             'dependent_children' => (int) $this->input('dependent_children', 0),
             'is_nssf_registered' => $this->boolean('is_nssf_registered'),
             'started_on' => $this->date('started_on'),
+            'nssf_enrolled_on' => $this->date('nssf_enrolled_on'),
             'ended_on' => $this->input('ended_on') ? $this->date('ended_on') : null,
         ];
     }

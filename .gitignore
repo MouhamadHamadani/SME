@@ -25,3 +25,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Per-tenant SQLite databases created by the test suite (tenancy suffix is empty,
+# so these have no extension). The Pest teardown sweeps them; this is the net.
+/database/tenant*

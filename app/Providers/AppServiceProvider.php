@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Payroll\Eosi\EosiStrategy;
+use App\Payroll\Eosi\LumpSumStrategy;
 use App\WhatsApp\SenderFactory;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -34,6 +36,19 @@ class AppServiceProvider extends ServiceProvider
          | business happened to be in context first.
          */
         $this->app->singleton(SenderFactory::class);
+
+        /*
+         | End-of-service calculation, bound in ONE place.
+         |
+         | Law 319 could move EOSI from a lump sum to a monthly pension. When
+         | it does, this line changes to the pension implementation and every
+         | caller — the accrual action, the screen, the command — is untouched.
+         | That is the whole reason EosiStrategy is an interface.
+         |
+         | Existing accrual rows keep their own strategy and version, so they
+         | continue to say what they said under the old law.
+         */
+        $this->app->bind(EosiStrategy::class, LumpSumStrategy::class);
 
         Gate::define('manage-payroll', fn (User $user) => $user->isOwner() || $user->isAccountant());
 

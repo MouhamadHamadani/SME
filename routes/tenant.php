@@ -6,6 +6,8 @@ use App\Http\Controllers\App\CreditNoteController;
 use App\Http\Controllers\App\CustomerController;
 use App\Http\Controllers\App\DashboardController;
 use App\Http\Controllers\App\EmployeeController;
+use App\Http\Controllers\App\EosiController;
+use App\Http\Controllers\App\ExchangeRateController;
 use App\Http\Controllers\App\InvoiceController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\VatController;
@@ -85,6 +87,16 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
              | hour ago cannot ssh in and run `whatsapp:connect`. Owner-only —
              | see the manage-settings gate.
              */
+            /*
+             | The two national rates are read-only here and entered centrally
+             | with `exchange:rate` — one business must not be able to edit the
+             | rate every other business files at. The form on this screen
+             | writes the business's OWN booking rate.
+             */
+            Route::get('/settings/exchange-rates', [ExchangeRateController::class, 'index'])->name('app.settings.exchange-rates');
+            Route::post('/settings/exchange-rates', [ExchangeRateController::class, 'update'])->name('app.settings.exchange-rates.update');
+            Route::get('/revaluation', [ExchangeRateController::class, 'revaluation'])->name('app.revaluation');
+
             Route::get('/settings/whatsapp', [WhatsAppSettingsController::class, 'edit'])->name('app.settings.whatsapp');
             Route::post('/settings/whatsapp', [WhatsAppSettingsController::class, 'update'])->name('app.settings.whatsapp.update');
             Route::post('/settings/whatsapp/test', [WhatsAppSettingsController::class, 'test'])->name('app.settings.whatsapp.test');
@@ -96,6 +108,13 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
             Route::get('/employees/{employee}', [EmployeeController::class, 'edit'])->name('app.employees.edit');
             Route::put('/employees/{employee}', [EmployeeController::class, 'update'])->name('app.employees.update');
             Route::post('/employees/{employee}/end', [EmployeeController::class, 'end'])->name('app.employees.end');
+
+            // End-of-service. Viewing is open to any signed-in user; every
+            // write is gated on manage-payroll inside the controller.
+            Route::get('/employees/{employee}/eosi', [EosiController::class, 'show'])->name('app.employees.eosi');
+            Route::post('/employees/{employee}/eosi', [EosiController::class, 'accrue'])->name('app.employees.eosi.accrue');
+            Route::post('/employees/{employee}/pay-elements', [EosiController::class, 'storePayElement'])->name('app.employees.pay-elements.store');
+            Route::delete('/employees/{employee}/pay-elements/{payElement}', [EosiController::class, 'destroyPayElement'])->name('app.employees.pay-elements.destroy');
             Route::post('/logout', [LoginController::class, 'destroy'])->name('app.logout');
         });
 

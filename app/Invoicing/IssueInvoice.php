@@ -3,6 +3,7 @@
 namespace App\Invoicing;
 
 use App\Invoicing\Exceptions\InvoicingException;
+use App\Models\ExchangeRate;
 use App\Models\Invoice;
 use App\Models\VatRateSchedule;
 use App\Models\VatTransaction;
@@ -65,6 +66,18 @@ class IssueInvoice
                 'issued_on' => $issuedOn,
                 'due_on' => $dueInDays !== null ? $issuedOn->copy()->addDays($dueInDays) : null,
                 'vat_rate_schedule_id' => $schedule->id,
+                /*
+                 * The Ministry's prescribed rate on the day of issue, snapshotted
+                 * beside the rate the books were kept at. §3.6: a filing converts
+                 * at the prescribed rate, not the market one.
+                 *
+                 * Null when no rate was entered for that day, and deliberately
+                 * NOT a reason to refuse the invoice — an invoice is a commercial
+                 * document that must be issuable today. The refusal belongs where
+                 * a filing figure is actually produced; see
+                 * ExchangeRate::requireRateFor().
+                 */
+                'mof_rate_lbp_per_usd' => ExchangeRate::asOf($issuedOn)?->mof_rate_lbp_per_usd,
             ])->save();
 
             $this->writeVatTransactions($invoice, $issuedOn);
