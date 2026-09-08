@@ -149,7 +149,7 @@
 
                     {{-- Crediting is the correction that works after the VAT
                          period is filed; voiding only works before. --}}
-                    <form method="POST" action="{{ route('app.invoices.credit', $invoice) }}" class="mt-4">
+                    <form method="POST" action="{{ route('app.invoices.credit.full', $invoice) }}" class="mt-4">
                         @csrf
                         <x-button
                             type="submit" variant="secondary" size="md" class="w-full"
@@ -157,6 +157,11 @@
                         >{{ __('app.credit_notes.create_full') }}</x-button>
                         <p class="mt-2 text-xs leading-relaxed text-warm-charcoal/70">{{ __('app.credit_notes.explain') }}</p>
                     </form>
+
+                    <a href="{{ route('app.invoices.credit.create', $invoice) }}"
+                       class="mt-3 block rounded text-center text-sm font-medium text-trust-navy underline-offset-4 hover:underline">
+                        {{ __('app.credit_notes.create_partial') }}
+                    </a>
 
                     <form method="POST" action="{{ route('app.invoices.void', $invoice) }}" class="mt-4 space-y-3">
                         @csrf

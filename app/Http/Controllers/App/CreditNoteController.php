@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreditNoteRequest;
 use App\Invoicing\Exceptions\InvoicingException;
 use App\Invoicing\IssueCreditNote;
 use App\Models\CreditNote;
@@ -21,12 +22,46 @@ class CreditNoteController extends Controller
     }
 
     /**
-     * Credit an invoice in full.
+     * The partial-credit form, pre-filled with the invoice's own lines.
      *
-     * Partial credits exist in the domain (IssueCreditNote::issue takes
-     * arbitrary lines) but have no screen yet — see docs/INVOICING.md.
+     * Redirects rather than 404s when there is nothing left to credit — the
+     * button that got you here is gone by then, so arriving is a stale link,
+     * not an error worth a page.
      */
-    public function store(Invoice $invoice, IssueCreditNote $issuer): RedirectResponse
+    public function create(Invoice $invoice): View|RedirectResponse
+    {
+        $this->authorize('manage-payroll');
+
+        if (! in_array($invoice->status, ['issued', 'paid'], true) || $invoice->creditableMinor() <= 0) {
+            return redirect()
+                ->route('app.invoices.show', $invoice)
+                ->withErrors(['issue' => InvoicingException::nothingToCredit($invoice->label())->getMessage()]);
+        }
+
+        return view('app.credit-notes.form', ['invoice' => $invoice->load('lines')]);
+    }
+
+    /**
+     * Issue a credit note from the submitted lines — full or partial.
+     *
+     * The over-credit ceiling is enforced in IssueCreditNote, after the lines
+     * are priced: only then is the total known.
+     */
+    public function store(CreditNoteRequest $request, Invoice $invoice, IssueCreditNote $issuer): RedirectResponse
+    {
+        try {
+            $note = $issuer->issue($invoice->load('lines'), $request->lineAttributes(), Carbon::today());
+        } catch (InvoicingException $e) {
+            return back()->withInput()->withErrors(['issue' => $e->getMessage()]);
+        }
+
+        return redirect()
+            ->route('app.credit-notes.show', $note)
+            ->with('status', __('app.credit_notes.issued_ok'));
+    }
+
+    /** One-click full credit, straight from the invoice screen. */
+    public function storeFull(Invoice $invoice, IssueCreditNote $issuer): RedirectResponse
     {
         $this->authorize('manage-payroll');
 

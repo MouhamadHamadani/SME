@@ -250,6 +250,7 @@ creating parallel components with different names.
 | `<x-form.select>` | Same. No custom chevron background-image (it would need mirroring) |
 | `<x-pricing-table>` | Reads tiers from the locale files; reusable on an in-app upgrade screen |
 | `<x-photo-slot>` | Deliberate image placeholder — see CONTENT-TODO §3 |
+| `<x-document-lines>` | Editable line rows, shared by invoices and credit notes |
 | `<x-nav>` | Sticky header, language switcher, native `<details>` mobile menu (no JS) |
 
 > **Gotcha:** passing `hidden sm:block` to `<x-button>` does not work. The
@@ -285,7 +286,7 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. 233 tests.
+Pest, `./vendor/bin/pest`. 243 tests.
 
 **Marketing**
 
@@ -328,6 +329,7 @@ Pest, `./vendor/bin/pest`. 233 tests.
 - `InvoicingTest` — line rounding, numbering, immutability, the VAT hand-off
   including the mixed-treatment split
 - `InvoiceScreenTest` — quantity parsing, issuing, void, the role gate
+- `PartialCreditNoteTest` — the pre-filled form and the over-credit ceiling
 - `CreditNoteTest`, `CreditNoteScreenTest` — corrections after a return is
   filed, negative transactions, the separate number series, scope isolation
 

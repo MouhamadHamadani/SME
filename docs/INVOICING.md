@@ -95,11 +95,32 @@ this arrangement rules out.
 - A credit note is neither paid nor voided. If it was wrong, raise another
   document.
 
-### Not built
+### Full and partial
 
-Only **full** credits have a screen. `IssueCreditNote::issue()` takes arbitrary
-lines and enforces the over-credit limit, so partial credits work in the
-domain — they just need a form.
+Two routes onto the same action:
+
+| | |
+|---|---|
+| `POST /invoices/{id}/credit/full` | One click from the invoice. Copies every line as-is. |
+| `GET  /invoices/{id}/credit` | The form, **pre-filled with the invoice's lines**. |
+| `POST /invoices/{id}/credit` | Issues from the submitted lines. |
+
+The form pre-fills rather than starting blank, so a full credit is one click
+away and a partial one is an *edit* — reduce a quantity or price, or remove
+lines you are not crediting. Each row shows what the original invoice line was,
+so the reduction can be judged against it.
+
+The remaining balance is **stated before the form**, not only enforced on
+submit. If you exceed it anyway the error names the exact figure left
+("At most 13,320,000 LBP remains uncredited") and keeps what you typed.
+
+> The ceiling is enforced in `IssueCreditNote`, after the lines are priced —
+> only then is the total known. The whole issue runs in one transaction, so a
+> rejected credit leaves nothing behind.
+
+Arriving at the form with nothing left to credit redirects back to the invoice
+rather than 404ing: the button that got you there is gone by then, so it is a
+stale link, not an error worth a page.
 
 ---
 
@@ -160,8 +181,6 @@ that touches a regulatory figure — see [VAT.md §1](VAT.md).
 
 ## 8. Not built yet
 
-- **Partial credit notes have no screen.** The domain supports them; only the
-  full-credit button exists.
 - **WhatsApp delivery.** The marketing site promises it and the customer's
   number is captured, but sending needs the Meta Cloud API and a verified
   business number. Nothing is wired.
@@ -195,3 +214,8 @@ USD, and tenant isolation.
 
 `CreditNoteScreenTest` — crediting from the invoice screen, the linked view,
 credit notes staying off the invoice list, the role gate, and Arabic RTL.
+
+`PartialCreditNoteTest` — the pre-filled form, partial amounts, a second
+credit up to the remaining balance, the over-credit refusal leaving nothing
+behind, per-line validation, mixed treatments credited partially, the stale
+link redirect, the role gate, and Arabic RTL.

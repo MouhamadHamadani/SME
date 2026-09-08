@@ -65,7 +65,7 @@ it('issues a credit note from the screen', function () {
     $id = seedIssuedInvoice();
     signInAs();
 
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit'))->assertRedirect();
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'))->assertRedirect();
 
     tenancy()->initialize($this->tenant);
     $note = CreditNote::sole();
@@ -79,7 +79,7 @@ it('shows the credit note and links back to the invoice', function () {
     vatSchedule();
     $id = seedIssuedInvoice();
     signInAs();
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit'));
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'));
 
     tenancy()->initialize($this->tenant);
     $note = CreditNote::sole();
@@ -98,7 +98,7 @@ it('lists credit notes on the invoice with what is left to credit', function () 
     vatSchedule();
     $id = seedIssuedInvoice();
     signInAs();
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit'));
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'));
 
     $this->get(tenantUrl('acme', '/invoices/'.$id))
         ->assertOk()
@@ -112,10 +112,10 @@ it('reports over-crediting as an error rather than a 500', function () {
     $id = seedIssuedInvoice();
     signInAs();
 
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit'));
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'));
 
     $this->from(tenantUrl('acme', '/invoices/'.$id))
-        ->post(tenantUrl('acme', '/invoices/'.$id.'/credit'))
+        ->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'))
         ->assertRedirect(tenantUrl('acme', '/invoices/'.$id))
         ->assertInvalid(['issue' => 'already been credited in full']);
 });
@@ -124,7 +124,7 @@ it('keeps credit notes off the invoice list', function () {
     vatSchedule();
     $id = seedIssuedInvoice();
     signInAs();
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit'));
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'));
 
     $html = $this->get(tenantUrl('acme', '/invoices'))->assertOk()->getContent();
 
@@ -137,14 +137,14 @@ it('does not let staff credit an invoice', function () {
     $id = seedIssuedInvoice();
     signInAs('staff');
 
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit'))->assertForbidden();
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'))->assertForbidden();
 });
 
 it('renders a credit note in Arabic with a mirrored layout', function () {
     vatSchedule();
     $id = seedIssuedInvoice();
     signInAs();
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit'));
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/credit/full'));
 
     tenancy()->initialize($this->tenant);
     $note = CreditNote::sole();

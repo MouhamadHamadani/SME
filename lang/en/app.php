@@ -279,5 +279,11 @@ return [
         'explain' => 'A credit note reverses an issued invoice. Unlike voiding, it works after the VAT period has been filed: the correction lands in the period the credit note is issued.',
         'none' => 'No credit notes.',
         'view' => 'View credit note',
+        'issue' => 'Issue credit note',
+        'issue_hint' => 'The credit reduces VAT in the period this note is issued. It cannot be edited afterwards.',
+        'lines_hint' => 'Pre-filled from the invoice. Reduce a quantity or price to credit part of it, or remove lines you are not crediting.',
+        'original_line' => 'Invoice line: :detail',
+        'amount_positive' => 'Must be more than zero.',
+        'nothing_left' => 'Nothing left to credit.',
     ],
 ];

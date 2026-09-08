@@ -78,6 +78,8 @@ No invoicing, no billing, no self-serve signup.
 - **Reuse the brand tokens, do not redefine them.** They live in `@theme` in
   `resources/css/app.css` (Tailwind 4 is CSS-first; there is no
   `tailwind.config.js`). Token names are contractual across the site and app.
+- **Editable line rows live in `<x-document-lines>`** — invoices and credit
+  notes both use it. Do not copy the markup or its renumbering script.
 - **Reuse the components in `resources/views/components/`** rather than creating
   parallel ones with different names. `<x-status-badge>` in particular is the
   app's filing-status badge — keep the `filed` / `due-soon` / `overdue` keys.
@@ -113,7 +115,7 @@ php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
-./vendor/bin/pest      # 233 tests
+./vendor/bin/pest      # 243 tests
 ```
 
 `npm run build` is not optional during development: Tailwind 4 scans source at
@@ -122,7 +124,7 @@ rebuild.
 
 ## Not built yet (deliberate)
 
-Partial credit-note screen · WhatsApp delivery · invoice PDF · payments · family-allowance benefit ·
+WhatsApp delivery · invoice PDF · payments · family-allowance benefit ·
 part-month pro-rating · self-serve signup and Whish/OMT billing (Phase 2) ·
 password reset · CRM or email automation · final logo · native-reviewed
 Arabic · real photography. Payroll gaps are listed in docs/PAYROLL.md §6.
