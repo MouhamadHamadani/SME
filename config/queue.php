@@ -37,7 +37,13 @@ return [
 
         'database' => [
             'driver' => 'database',
-            'connection' => env('DB_QUEUE_CONNECTION'),
+            /*
+             | Central connection, pinned — same reason as cache and session.
+             | Queue tables are infrastructure, not tenant business data; the
+             | tenant a job belongs to travels in the job payload (stancl's
+             | QueueTenancyBootstrapper), not in which database it is stored in.
+             */
+            'connection' => env('DB_QUEUE_CONNECTION', env('DB_CONNECTION', 'mysql')),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
             'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),

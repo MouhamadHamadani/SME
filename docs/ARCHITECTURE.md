@@ -1,35 +1,125 @@
-# Architecture — public marketing site
+# Architecture
 
-This repo holds both the public marketing site and (eventually) the
-authenticated app. One deploy, one Tailwind theme, one place the brand system
-stays in sync.
+One repo, one deploy: the public marketing site and the authenticated app share
+a Tailwind theme, a component library and a brand system, so the front door and
+the product cannot drift apart.
 
 **Content and launch blockers live in [CONTENT-TODO.md](CONTENT-TODO.md).**
 
 ---
 
-## What this session built
+## What exists
 
-A bilingual (EN/AR) pre-launch marketing site with lead capture, plus the shared
-component library and brand tokens the app-foundation session will reuse.
+1. **Public marketing site** — bilingual (EN/AR), lead capture, brand system.
+2. **App foundation** — multi-tenancy, sign-in, and an authenticated shell that
+   reuses the marketing component library unchanged.
 
-Laravel 13 · Tailwind 4 · Blade (no Livewire — nothing here needs it) · Pest.
+Laravel 13 · Tailwind 4 · Blade (no Livewire — nothing needs it yet) ·
+stancl/tenancy v3 · MySQL · Pest.
+
+**Not built, deliberately:** the accounting domain itself (payroll, NSSF, EOSI,
+VAT, ledger). Those models encode real regulatory data — contribution rates,
+ceilings, brackets, filing deadlines — and inventing that schema without the
+actual specification would produce something worse than nothing: code that looks
+authoritative and computes wrong salaries. It needs the real figures first.
+
+---
+
+## Tenancy
+
+**One database per tenant** (stancl/tenancy v3), resolved by **subdomain**.
+
+For this product that is a compliance decision, not a scaling one: a business's
+payroll and employee records are separated at the database level, so a missing
+`where tenant_id = ?` cannot leak one business's salaries into another's. It
+also makes "export or delete everything for this business" one operation.
+
+| | |
+|---|---|
+| Central DB | `tenants`, `domains`, `leads`, `sessions`, `cache`, `jobs` |
+| Tenant DB | `users`, `password_reset_tokens` (business data goes here) |
+| Tenant model | `App\Models\Tenant` — uuid, name, plan, `wa_phone_number`, `settings` JSON |
+| Resolution | `acme.{app_domain}` → tenant `acme` |
+| Domain source | `config('tenancy.app_domain')`, derived from `APP_URL` — **one** source of truth for routing and provisioning |
+
+`plan` is `starter|growth|pro`, matching the published §7 pricing exactly. Keep
+it in step with the `pricing.tiers` keys in the marketing lang files.
+
+`settings` holds `exchange_rate`, `currency`, `language`. The LBP/USD rate is
+per-tenant because it is a business decision, not a system constant — two
+businesses can legitimately book at different rates on the same day.
+
+### Infrastructure tables are CENTRAL. Business data is per-tenant.
+
+This rule is load-bearing. Tenancy repoints `database.default` at the tenant, so
+any *unpinned* database-backed service looks for its table inside the tenant's
+database and 500s. `session.connection`, `cache.stores.database.connection` and
+`queue.connections.database.connection` are all explicitly pinned to the central
+connection for exactly this reason.
+
+> The test suite runs `SESSION_DRIVER=array` and `CACHE_STORE=array`, so it will
+> **not** catch a regression here on its own. `TenantInfrastructureTest` exists
+> to close that gap — it asserts the pinning and exercises the database drivers.
+
+### Onboarding
+
+There is no self-serve signup, because there is no self-serve billing
+(Whish/OMT is Phase 2, §6). During early access the founder provisions each
+business by hand from a row in the `leads` table:
+
+```
+php artisan tenant:create "Haddad Grill" haddadgrill \
+  --plan=growth --owner-name="Rami Haddad" --owner-email=rami@haddadgrill.com \
+  --wa="+96170123456" --rate=89500
+```
+
+Creates the tenant, its database, its domain, and the owner account. Omit
+`--owner-password` to generate one (printed once).
+
+---
+
+## Local setup
+
+`APP_URL` decides the tenant subdomain base. It defaults to `http://localhost`
+because browsers resolve `*.localhost` to 127.0.0.1 (RFC 6761) — so
+`acme.localhost:8000` works with no hosts-file editing and no admin rights.
+Point it at a real domain for staging and production.
+
+MySQL is required (per-tenant `CREATE DATABASE`). **`engine` is pinned to
+InnoDB** in `config/database.php`: this WAMP install ships
+`default_storage_engine=MyISAM`, which has no transactions and no foreign keys —
+unusable for a payroll and VAT ledger, where a half-written pay run is a
+correctness bug rather than an inconvenience.
 
 ---
 
 ## Route boundary
 
-Marketing routes are the public front door and are **explicitly unauthenticated
-and outside any tenancy middleware**. When the app-foundation session adds
-tenant/auth routes, they get their own group — do not wrap these.
+Marketing routes are the public front door: **explicitly unauthenticated and
+outside all tenancy middleware**. App routes live in their own subdomain group.
+Do not merge the two.
 
-| Route | Name | Locale |
+| Route | Name | Domain |
 |---|---|---|
-| `GET /` | `marketing.home` | en |
-| `GET /ar` | `marketing.home.ar` | ar |
-| `POST /early-access` | `marketing.leads.store` | from form field |
+| `GET /` | `marketing.home` | central (en) |
+| `GET /ar` | `marketing.home.ar` | central (ar) |
+| `POST /early-access` | `marketing.leads.store` | central |
+| `GET /login` · `POST /login` | `app.login` · `app.login.attempt` | `{tenant}.` |
+| `GET /` | `app.dashboard` | `{tenant}.` |
+| `POST /logout` · `POST /locale` | `app.logout` · `app.locale` | `{tenant}.` |
 
-Locale is carried **in the URL, not the session**, so a link shared on WhatsApp —
+> **Route ORDER is load-bearing, and the defaults get it wrong.**
+> Marketing routes are unconstrained; tenant routes are subdomain-constrained.
+> Laravel matches in registration order, so if marketing went first,
+> `acme.example.com/` would serve the *public marketing homepage* instead of the
+> app. stancl's `TenancyServiceProvider::mapRoutes` registers tenant routes
+> inside `app->booted()` — dead last — which is precisely that bug. It is
+> disabled there; `bootstrap/app.php` owns route order, and applies the `web`
+> middleware group to both files (taking over registration means it is no longer
+> applied for you — losing it silently breaks CSRF and sessions on the lead form).
+> `TenancyTest` has a regression test for the shadowing case.
+
+On the marketing side locale is carried **in the URL, not the session**, so a link shared on WhatsApp —
 or an ad destination — keeps its language, and each locale is separately
 indexable (`hreflang` tags are in the layout). `SetMarketingLocale` reads it from
 a route default on GET, and from the form's hidden `locale` field on POST, so a
@@ -156,24 +246,51 @@ to one without the other renders a raw key on the other page.
 
 ---
 
+## Locale: two different strategies, on purpose
+
+- **Marketing site** — locale in the URL (`/` and `/ar`). A shared link or an ad
+  destination carries its own language, and each locale is separately indexable.
+- **App** — locale per *person*: their saved preference, then the business
+  default, then Arabic. A URL prefix would be noise on every internal link, since
+  nobody shares deep links into someone else's books. The switcher is a POST
+  (it writes a preference) and persists to `users.locale`.
+
+---
+
 ## Tests
 
-Pest, `./vendor/bin/pest`. 29 tests.
+Pest, `./vendor/bin/pest`. 59 tests.
 
-- `MarketingHomeTest` — renders in both locales with the right `dir`; all six
-  sections present and in order; hero price precedes both the pricing table and
-  the form; the three §7 tiers and prices; logical-property enforcement; gold
-  never paired with light text; no negative-offset regression; no government
-  imagery
-- `LeadCaptureTest` — valid storage, optional field, locale recording, honeypot
-  dropped silently, required-field and format validation, **per-locale error
-  messages**, rendered thank-you state in both languages, rate limiting
-- `LanguageSwitcherTest` — switcher on every page, locale persists across page
-  loads, whole page in one language with no English stubs, `lang`/`dir` correct
+**Marketing**
+
+- `MarketingHomeTest` — both locales and `dir`; six sections in order; hero price
+  precedes the pricing table and the form; §7 tiers and prices; logical-property
+  enforcement; gold never paired with light text; no negative-offset regression;
+  no government imagery
+- `LeadCaptureTest` — storage, honeypot dropped silently, per-locale validation
+  messages, rendered thank-you state in both languages, rate limiting
+- `LanguageSwitcherTest` — switcher present, locale persists, no English stubs
+
+**App foundation**
+
+- `TenancyTest` — separate databases per business; users isolated; the same email
+  can exist at two businesses; subdomain resolution; unknown subdomain 404s;
+  app not exposed on a central domain; **marketing homepage does not shadow the
+  app on a tenant subdomain**; marketing stays public; `tenant:create` including
+  its validation failures
+- `AppAuthTest` — sign-in scoped to the business; another tenant's real
+  credentials rejected; identical message for wrong-password and unknown-address
+  (no user enumeration); session regenerated on login (fixation); guests
+  redirected to the app login not the marketing site; password never echoed back;
+  rate limiting; Arabic RTL by default; language preference persisted; `noindex`
+- `TenantInfrastructureTest` — the central/tenant table split, and the
+  database-driver session/cache path the array drivers hide
 
 ---
 
 ## Explicitly not built
 
-Authenticated app screens · Whish/OMT billing (§6 Phase 2) · CRM or email
-automation · final logo · native-reviewed Arabic · real photography.
+The accounting domain (payroll, NSSF, EOSI, VAT, ledger — needs the real
+regulatory figures) · self-serve signup and Whish/OMT billing (§6 Phase 2) ·
+password reset · CRM or email automation · final logo · native-reviewed Arabic ·
+real photography.

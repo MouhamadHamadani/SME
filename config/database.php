@@ -58,7 +58,14 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'strict' => true,
-            'engine' => null,
+            /*
+             * Pinned, not left to the server default. This WAMP MySQL ships
+             * with default_storage_engine=MyISAM, which has no transactions and
+             * no foreign keys — unusable for a payroll and VAT ledger, where a
+             * half-written pay run is a correctness bug, not an inconvenience.
+             * Tenant databases inherit this connection as their template.
+             */
+            'engine' => env('DB_ENGINE', 'InnoDB'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
@@ -78,7 +85,14 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'strict' => true,
-            'engine' => null,
+            /*
+             * Pinned, not left to the server default. This WAMP MySQL ships
+             * with default_storage_engine=MyISAM, which has no transactions and
+             * no foreign keys — unusable for a payroll and VAT ledger, where a
+             * half-written pay run is a correctness bug, not an inconvenience.
+             * Tenant databases inherit this connection as their template.
+             */
+            'engine' => env('DB_ENGINE', 'InnoDB'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],

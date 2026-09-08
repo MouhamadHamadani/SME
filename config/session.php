@@ -73,7 +73,16 @@ return [
     |
     */
 
-    'connection' => env('SESSION_CONNECTION'),
+    /*
+     | Pinned to the CENTRAL connection, not left to the default.
+     |
+     | Tenancy swaps `database.default` to the per-tenant connection, so an
+     | unpinned database session driver looks for `sessions` inside the tenant's
+     | own database — which does not have that table (it is central by design,
+     | because the public marketing site needs sessions too and has no tenant).
+     | Every authenticated page load 500s without this.
+     */
+    'connection' => env('SESSION_CONNECTION', env('DB_CONNECTION', 'mysql')),
 
     /*
     |--------------------------------------------------------------------------

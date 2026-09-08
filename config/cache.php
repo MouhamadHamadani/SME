@@ -41,7 +41,15 @@ return [
 
         'database' => [
             'driver' => 'database',
-            'connection' => env('DB_CACHE_CONNECTION'),
+            /*
+             | Central connection, pinned. Tenancy repoints `database.default`
+             | to the tenant, so an unpinned database store looks for `cache`
+             | inside the tenant's database and 500s — which takes down the
+             | login rate limiter with it. Per-tenant isolation comes from
+             | stancl's CacheTenancyBootstrapper prefixing keys, not from a
+             | separate table per tenant.
+             */
+            'connection' => env('DB_CACHE_CONNECTION', env('DB_CONNECTION', 'mysql')),
             'table' => env('DB_CACHE_TABLE', 'cache'),
             'lock_connection' => env('DB_CACHE_LOCK_CONNECTION'),
             'lock_table' => env('DB_CACHE_LOCK_TABLE'),
