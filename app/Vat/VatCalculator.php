@@ -41,14 +41,17 @@ final class VatCalculator
         return new VatAmount($gross->minus($vat), $vat, $treatment);
     }
 
+    /**
+     * Deliberately currency-agnostic.
+     *
+     * This used to insist on LBP, which was the wrong place for that rule: a
+     * USD invoice legitimately shows its VAT in USD, and the invoice is the
+     * tax document. The LBP requirement belongs at the point a
+     * `vat_transactions` row is written, and that is where it now lives —
+     * percentage arithmetic has no opinion about currency.
+     */
     private function guard(Money $amount): void
     {
-        if ($amount->currency !== Currency::LBP) {
-            throw new InvalidArgumentException(
-                'VAT is declared in LBP. Convert at the period\'s exchange rate first.'
-            );
-        }
-
         if ($amount->minorUnits < 0) {
             throw new InvalidArgumentException('A VAT amount cannot be negative. Record a credit note instead.');
         }

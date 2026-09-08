@@ -9,6 +9,7 @@ use Database\Factories\VatTransactionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
@@ -33,6 +34,7 @@ class VatTransaction extends Model
         'vat_lbp',
         'is_recoverable',
         'vat_return_id',
+        'invoice_id',
     ];
 
     protected function casts(): array
@@ -47,6 +49,11 @@ class VatTransaction extends Model
             'vat_lbp' => 'integer',
             'is_recoverable' => 'boolean',
         ];
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
     }
 
     public function scopeSales(Builder $query): Builder

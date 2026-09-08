@@ -112,11 +112,9 @@ Or from the app: **VAT** in the top nav. Drafting and filing are gated on
 
 ## 5. Not built yet
 
-- **Transaction entry screen.** Sales and purchases are created in code or by
-  import. The VAT screen is read-only over them. This is the biggest gap —
-  and it mostly disappears when invoicing lands, because an invoice should
-  *write* a `vat_transactions` row rather than the return learning to read two
-  sources.
+- **Purchase entry screen.** SALES now arrive from the invoicing module,
+  which writes `vat_transactions` on issue — see [INVOICING.md](INVOICING.md).
+  Purchases still have no entry screen and are created in code.
 - **Partial exemption / apportionment.** A business making both taxable and
   exempt supplies must apportion its input VAT. Not modelled — `is_recoverable`
   is a manual flag per purchase so the system never silently over-recovers.

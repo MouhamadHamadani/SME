@@ -98,6 +98,8 @@ persists.
 |---|---|---|
 | Dashboard | `/` | Plan, exchange rate, WhatsApp sender |
 | Payroll | `/payroll` | NSSF contributions, draft and finalise a month |
+| Invoices | `/invoices` | Create, issue, mark paid, void |
+| Customers | `/customers` | Who you invoice |
 | VAT | `/vat` | Quarterly return, draft and file |
 | Employees | `/employees` | Add, edit, end employment |
 

@@ -93,11 +93,16 @@ it('handles a zero amount', function () {
     expect($a->vat->isZero())->toBeTrue()->and($a->gross()->isZero())->toBeTrue();
 });
 
-it('refuses to compute in USD', function () {
-    // VAT is declared in lira; conversion is the caller's job so the rate used
-    // is stored and auditable rather than implicit.
-    $this->calc->fromNet(Money::usd(50_000), VatTreatment::Standard, BPS);
-})->throws(InvalidArgumentException::class, 'declared in LBP');
+it('computes in whatever currency it is handed', function () {
+    // A USD invoice shows its VAT in USD — the invoice is the tax document.
+    // The LBP requirement lives where a vat_transactions row is written, not
+    // here: percentage arithmetic has no opinion about currency.
+    $a = $this->calc->fromNet(Money::usd(50_000), VatTreatment::Standard, BPS);
+
+    expect($a->vat->currency)->toBe(Currency::USD)
+        ->and($a->vat->minorUnits)->toBe(5_500)      // $55.00 on $500.00
+        ->and($a->gross()->minorUnits)->toBe(55_500);
+});
 
 it('refuses a negative amount', function () {
     $this->calc->fromNet(Money::of(-1, Currency::LBP), VatTreatment::Standard, BPS);
