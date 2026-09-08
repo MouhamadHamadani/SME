@@ -290,7 +290,15 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. 318 tests on SQLite; `./vendor/bin/pest -c phpunit.mysql.xml` runs the same suite against real MySQL, which is where engine differences show up.
+Pest, `./vendor/bin/pest`. **323 tests, green on SQLite and on real MySQL**
+(`./vendor/bin/pest -c phpunit.mysql.xml`, ~11 minutes — it creates and drops a
+real database per tenant test).
+
+Run the MySQL one before a release. SQLite forgives what MySQL does not, and
+two defects here were exactly that divergence: a VAT quarter whose last day was
+dropped, and an EOSI accrual that duplicated on SQLite where MySQL would have
+matched. A green SQLite suite does not mean the two agree — it means no test
+has asked them to.
 
 **Marketing**
 

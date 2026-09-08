@@ -152,7 +152,7 @@ php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
 php artisan exchange:rate   # the day's market and Ministry LBP/USD rates
 php artisan eosi:accrue <business>   # freeze end-of-service estimates
-./vendor/bin/pest      # 318 tests (SQLite)
+./vendor/bin/pest      # 323 tests (SQLite)
 ./vendor/bin/pest -c phpunit.mysql.xml   # the same suite against real MySQL
 ```
 
