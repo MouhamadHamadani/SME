@@ -1,58 +1,99 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SME Compliance Accounting & Payroll Suite
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+*Working name pending branding — see [Blockers](#blockers).*
 
-## About Laravel
+Bilingual (Arabic/English) cloud accounting and payroll for Lebanese SMEs, where
+Lebanon-specific compliance is native rather than bolted on: NSSF contributions,
+end-of-service indemnity, VAT, and genuine LBP/USD dual-currency accounting.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Sold self-serve at published prices — the wedge is the *combination* of
+self-serve signup, transparent pricing, dual-currency, and NSSF/EOSI/VAT
+compliance in one product. Not "the only one doing NSSF"; that is no longer
+accurate (`docs/knowledge-base.md` §11).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Laravel 13 · Blade · Tailwind 4 · MySQL · Pest · PHP 8.3
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Where the project is
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Phase | State |
+|---|---|
+| Knowledge base — regulatory mechanics, market, data model | Done — [`docs/knowledge-base.md`](docs/knowledge-base.md) |
+| Design — marketing site visual system | Done — [`docs/design-brief.md`](docs/design-brief.md) |
+| Public marketing site | Built, **not launchable** — see [Blockers](#blockers) |
+| App: tenancy, sign-in, shell | Built |
+| Payroll & NSSF | Built — [`docs/PAYROLL.md`](docs/PAYROLL.md) |
+| VAT & quarterly returns | Built — [`docs/VAT.md`](docs/VAT.md) |
+| Invoicing & credit notes | Built — [`docs/INVOICING.md`](docs/INVOICING.md) |
+| WhatsApp delivery | Built — [`docs/WHATSAPP.md`](docs/WHATSAPP.md) |
+| Dual-currency rates & revaluation | Built — [`docs/DUAL-CURRENCY-STATUS.md`](docs/DUAL-CURRENCY-STATUS.md) |
+| End-of-service accrual | Built — [`docs/EOSI-STATUS.md`](docs/EOSI-STATUS.md) |
+| Design — **app UI** phase | Not started. The marketing system extends into it by design. |
+| Payments, invoice PDF, VAT purchase entry | Not built |
+| Self-serve signup & Whish/OMT billing | Phase 2, not built |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**No regulatory figures ship with this system.** NSSF rates and ceilings, VAT
+rates, and both exchange rates are effective-dated data a human must enter and
+verify. Payroll, VAT and filings **refuse to run** rather than compute from a
+guess — a wrong figure that looks authoritative gets declared.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+---
 
-## Agentic Development
+## Documentation
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Read [`CLAUDE.md`](CLAUDE.md) first if you are changing anything — it carries
+the hard rules that cost real debugging time to learn.
+
+| | |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Brand tokens, contrast rules, tenancy, component inventory, gotchas |
+| [`docs/RUNNING.md`](docs/RUNNING.md) | How to run it and sign in as a tenant |
+| [`docs/CONTENT-TODO.md`](docs/CONTENT-TODO.md) | What still needs a human before launch |
+| [`docs/ARCHITECTURE-DECISION-tenancy.md`](docs/ARCHITECTURE-DECISION-tenancy.md) | One database per tenant — **open decision** |
+| [`docs/knowledge-base.md`](docs/knowledge-base.md) | Founding reference: regulation, market, data model |
+| [`docs/design-brief.md`](docs/design-brief.md) | Design decisions log for the marketing site |
+
+---
+
+## Quick start
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install && npm install
+cp .env.example .env && php artisan key:generate
+php artisan migrate
+php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
+npm run build
+php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Rates must be loaded before payroll or VAT will compute anything — see
+[`docs/RUNNING.md`](docs/RUNNING.md) §4.
 
-## Contributing
+```bash
+./vendor/bin/pest                          # 323 tests, SQLite
+./vendor/bin/pest -c phpunit.mysql.xml     # the same suite against real MySQL
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Run the MySQL one before a release: SQLite forgives what MySQL does not, and
+two real defects here were exactly that divergence.
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Blockers
 
-## Security Vulnerabilities
+Nothing below is a coding task. Full detail in
+[`docs/CONTENT-TODO.md`](docs/CONTENT-TODO.md).
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. **Product name** — blocks the logo and wordmark. The site renders a
+   text-only placeholder reading "Compliance Suite" from a single Blade
+   component, so swapping it is a one-file change.
+2. **Native Lebanese Arabic review** — the Arabic is a best-effort draft.
+   Translated copy undercuts the "built for us" positioning, which is the pitch.
+3. **Photography** — placeholder slots, deliberately not stock or illustration.
+4. **Legal check on NSSF / Ministry of Finance references** — text claims only;
+   no official seals or imagery anywhere, and a test asserts that.
+5. **Accessibility target** — built and measured to WCAG AA; the brief asks for
+   that target to be explicitly confirmed.
+6. **Meta approval** before WhatsApp can send anything —
+   [`docs/WHATSAPP.md`](docs/WHATSAPP.md) §1.

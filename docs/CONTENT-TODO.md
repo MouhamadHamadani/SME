@@ -134,18 +134,37 @@ for testimonials that cannot exist pre-launch. Needs:
 
 ---
 
-## 7. Source documents — knowledge base RESOLVED, design brief still missing
+## 7. Source documents — RESOLVED
 
-**`docs/knowledge-base.md` is now in the repository** (added 8 September 2026).
-The payroll and dual-currency work has been checked against it directly — see
-[EOSI-STATUS.md](EOSI-STATUS.md) and [DUAL-CURRENCY-STATUS.md](DUAL-CURRENCY-STATUS.md),
-and one real correction came out of it (§9 requires an NSSF enrolment date on
-Employee, which the first cut of EOSI did not have).
+**Both are now in the repository.** `docs/knowledge-base.md` (8 September 2026)
+and `docs/design-brief.md` (9 September 2026).
 
-**`docs/design-brief.md` is still missing.** The marketing site was built from
-the spec inlined in the original build request — palette, tokens, the
-six-section homepage flow, §5 competitive framing, §4 pain points. Add it and
-re-check the site against it.
+The payroll and dual-currency work was checked against the knowledge base
+directly — see [EOSI-STATUS.md](EOSI-STATUS.md) and
+[DUAL-CURRENCY-STATUS.md](DUAL-CURRENCY-STATUS.md) — and one real correction
+came out of it: §9 requires an NSSF enrolment date on Employee, which the first
+cut of EOSI did not have.
+
+**The marketing site has now been checked against the design brief and matches
+it.** It had been built from the spec inlined in the original build request; the
+brief confirms that spec rather than contradicting it:
+
+| Brief | Built |
+|---|---|
+| Five palette hexes + two status colours | Exactly, in `@theme` |
+| 60/30/10 usage ratio, no gradients, no asymmetric colour blocking | Held |
+| Six-section homepage in order | Hero → pain → features → compliance → pricing → story |
+| Real price above the fold, no form | `$19/month` in the hero; verified above the fold at 375px in both languages |
+| Inter + a weight-matched Arabic face | Inter + IBM Plex Sans Arabic (the brief's own suggestion), applied by locale |
+| Mobile-first | No horizontal overflow at 375px, LTR or RTL |
+| Real photography over stock or illustration | Marked placeholder slots — see §3 |
+| Component library: buttons, cards, pricing table, nav, forms, status badges | All present in `resources/views/components/`, and the app reuses them |
+| Palette must survive an RTL mirror | Logical properties throughout, enforced by a test |
+
+Nothing in the brief required a change to the site. The two things it *did*
+surface were documentation gaps, both now closed: the brief references
+`README.md` as the project roadmap, which was still stock Laravel boilerplate
+(rewritten), and it lists a fifth blocker this file did not carry (§8 below).
 
 One spot-check done against the now-present knowledge base: §11 warns that
 leading with "the only one with NSSF" is no longer accurate, because Azkatech
@@ -158,6 +177,22 @@ One claim is worth a second look, though: the WhatsApp feature card is tagged
 has verified against Azkatech or the regional ERPs, and it is the kind of line
 a competitor notices. The rest of the site has not been re-read against the
 knowledge base.
+
+---
+
+## 8. Accessibility target needs explicit confirmation
+
+Design brief blocker #5, which this file did not previously carry.
+
+The brief defaults to **WCAG AA** for a compliance product and asks for that to
+be confirmed rather than assumed. The site and the app were built and *measured*
+to AA — the contrast rules in [ARCHITECTURE.md](ARCHITECTURE.md) come from real
+canvas measurements, three of which caught failures — so this is a decision to
+ratify, not work to schedule.
+
+Worth confirming explicitly because the answer changes things if it is **AAA**:
+`warm-gold` and the amber status colour would both fail as text at 7:1, and the
+`/70` muted-text floor would have to rise. If AA is the answer, nothing changes.
 
 ---
 

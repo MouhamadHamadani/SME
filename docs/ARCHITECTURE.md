@@ -263,6 +263,31 @@ creating parallel components with different names.
 > of attribute order. Wrap the button in a `<span>` and put the responsive
 > display utility there.
 
+### Iconography
+
+The design brief lists an "iconography direction" as an output of the design
+phase. This is the one in use — written down after the fact, so the next icon
+matches the five that exist rather than starting a second convention.
+
+- **Inline SVG only.** No icon font, no icon library, no sprite sheet. Five
+  icons across the whole site; a dependency for that is not worth its weight,
+  and an icon font ships glyphs nobody uses.
+- **`viewBox="0 0 20 20"`** for UI icons, drawn on a 20-unit grid.
+- **Stroked, not filled**: `fill="none" stroke="currentColor"`, stroke width
+  2–2.5, with `stroke-linecap` and `stroke-linejoin` set to `round`. Rounded
+  strokes read as considered rather than clinical, which is the same reason the
+  neutrals are warm rather than grey.
+- **Colour is inherited** through `currentColor` and a text utility, never
+  hard-coded on the path — so an icon cannot drift from its label's colour and
+  break a contrast pairing.
+- **Sized with `size-*`**, never fixed width/height attributes.
+- **Decorative icons carry `aria-hidden="true"`** and the meaning lives in
+  adjacent text. Nothing in this system is conveyed by an icon alone — the same
+  rule as `<x-status-badge>`, which always states its status in words.
+- **Anything that encodes direction takes `.rtl-flip`** (`app.css`). Today
+  nothing does: the only chevron points down, and the one arrow in app copy is
+  a per-locale character rather than a flipped glyph.
+
 ---
 
 ## Content
