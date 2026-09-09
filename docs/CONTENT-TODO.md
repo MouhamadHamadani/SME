@@ -172,11 +172,19 @@ is a real competitor on that wedge. **The homepage does not make that claim** �
 it leads with "The combination nobody else sells you", which is §5's corrected
 framing. Nothing to fix there.
 
-One claim is worth a second look, though: the WhatsApp feature card is tagged
-*"Nobody in this category ships it"*. That is a competitive assertion nobody
-has verified against Azkatech or the regional ERPs, and it is the kind of line
-a competitor notices. The rest of the site has not been re-read against the
-knowledge base.
+**Fixed:** the WhatsApp feature card was tagged *"Nobody in this category ships
+it"* — an absolute claim about every competitor that nobody had verified against
+Azkatech or the regional ERPs, and exactly the kind of line §11 warns about. It
+now reads *"Usually an email attachment, if that"*, which is hedged the same way
+the other feature tags are and describes the category norm rather than asserting
+what no competitor has.
+
+The remaining absolute claims — the section heading *"The combination nobody
+else sells you"* and its lede — are **supported by §5**, which states the wedge
+is the combination nobody currently offers together. Those stay.
+
+The rest of the site has not been re-read line by line against the knowledge
+base.
 
 ---
 

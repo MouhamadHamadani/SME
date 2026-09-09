@@ -86,7 +86,7 @@ return [
             ],
             [
                 'title' => 'Invoices delivered over WhatsApp',
-                'tag' => 'Nobody in this category ships it',
+                'tag' => 'Usually an email attachment, if that',
                 'body' => 'Where your customers already are. Send the invoice and get the confirmation inside the app they have open all day.',
             ],
             [
