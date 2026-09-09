@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Invoicing\Exceptions\InvoicingException;
+use App\Invoicing\RecordPayment;
 use App\Support\Currency;
 use App\Support\Money;
+use App\Support\PaymentMethod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -125,6 +127,56 @@ class Invoice extends Model
         return max(0, $this->total_minor - $this->creditedMinor());
     }
 
+    /** Money received against this invoice. */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class, 'invoice_id')->orderBy('received_on')->orderBy('id');
+    }
+
+    /**
+     * What has actually been received, in the invoice's own currency.
+     *
+     * Every payment is in that currency — RecordPayment refuses any other —
+     * so this is a plain sum rather than a conversion.
+     */
+    public function amountPaid(): Money
+    {
+        return Money::of((int) $this->payments()->sum('amount_minor'), $this->currency);
+    }
+
+    /**
+     * What is still owed: the total, less credit notes, less payments.
+     *
+     * Both effects in ONE number. An invoice that has been partly credited and
+     * partly paid owes neither the uncredited part nor the unpaid part but the
+     * overlap of the two, and reporting either half alone is simply a wrong
+     * figure. Never negative, matching creditableMinor().
+     */
+    public function balance(): Money
+    {
+        return Money::of(
+            max(0, $this->total_minor - $this->creditedMinor() - $this->amountPaid()->minorUnits),
+            $this->currency,
+        );
+    }
+
+    /**
+     * Settled by money, not by credit.
+     *
+     * A fully CREDITED invoice also has a zero balance and is deliberately not
+     * "paid" — nobody paid it. That distinction is why this asks for a payment
+     * to exist rather than only checking the balance.
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->amountPaid()->minorUnits > 0 && $this->balance()->isZero();
+    }
+
+    public function isPartiallyPaid(): bool
+    {
+        return $this->amountPaid()->minorUnits > 0 && ! $this->balance()->isZero();
+    }
+
     public function isFullyCredited(): bool
     {
         return $this->status !== 'draft' && $this->creditableMinor() === 0 && $this->total_minor > 0;
@@ -174,13 +226,39 @@ class Invoice extends Model
             && $this->due_on->isPast();
     }
 
-    /** filed / due-soon / overdue — the shared status-badge vocabulary. */
+    /**
+     * filed / due-soon / overdue — the shared status-badge vocabulary.
+     *
+     * OVERDUE AND PARTIALLY PAID resolves to `overdue`, deliberately. A part
+     * payment does not cure lateness: money is still late, and an amber badge
+     * on an invoice a customer is behind on is the wrong signal to give the
+     * person chasing it. The partial settlement is not lost — it is said in
+     * words by statusLabel() and in figures by the balance beside it. Green is
+     * reserved for a balance of zero.
+     */
     public function statusKey(): string
     {
         return match (true) {
             $this->isPaid() => 'filed',
             $this->isOverdue() => 'overdue',
             default => 'due-soon',
+        };
+    }
+
+    /**
+     * What the badge SAYS, as opposed to what colour it is.
+     *
+     * Four states over three colours, which is why the label is its own method
+     * rather than a ternary repeated in every view that renders the badge.
+     */
+    public function statusLabel(): string
+    {
+        return match (true) {
+            $this->isPaid() => __('app.invoices.status_paid'),
+            $this->isOverdue() && $this->isPartiallyPaid() => __('app.invoices.status_overdue_part_paid'),
+            $this->isOverdue() => __('app.invoices.status_overdue'),
+            $this->isPartiallyPaid() => __('app.invoices.status_part_paid'),
+            default => __('app.invoices.status_issued'),
         };
     }
 
@@ -210,13 +288,23 @@ class Invoice extends Model
         return $this->reference ?? __('app.invoices.unnumbered');
     }
 
-    public function markPaid(): void
+    /**
+     * Settle the whole outstanding balance in one payment.
+     *
+     * A thin wrapper over RecordPayment, kept because "this invoice is now
+     * paid in full" is a sentence worth having — but it goes through the same
+     * door as everything else, so there is no path that marks an invoice paid
+     * without a real Payment row behind it. The UI does not call this: the
+     * record-payment form does, with a method and a date the person chose.
+     * Hence the deliberately vague default method here.
+     */
+    public function markPaid(PaymentMethod $method = PaymentMethod::Other, ?User $by = null): Payment
     {
         if ($this->isDraft() || $this->isVoid()) {
             throw InvoicingException::cannotMarkPaid($this->label());
         }
 
-        $this->forceFill(['status' => 'paid', 'paid_at' => now()])->save();
+        return app(RecordPayment::class)->record($this, $this->balance(), $method, by: $by);
     }
 
     /**
@@ -234,6 +322,17 @@ class Invoice extends Model
 
         if ($this->isVoid()) {
             throw InvoicingException::alreadyVoid($this->label());
+        }
+
+        /*
+         * A paid or part-paid invoice is a settled transaction. Voiding it
+         * would erase the payment history along with the VAT it declared, and
+         * leave receipts pointing at a document that says it never happened.
+         * Correct it with a credit note instead — the same answer this module
+         * already gives once a VAT period is filed.
+         */
+        if ($this->payments()->exists()) {
+            throw InvoicingException::cannotVoidPaid($this->label());
         }
 
         $transactions = $this->vatTransactions()->get();

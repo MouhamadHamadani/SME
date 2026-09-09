@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Invoicing\Exceptions\InvoicingException;
+use App\Support\PaymentMethod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -46,7 +47,7 @@ class CreditNote extends Invoice
      * A credit note is never "paid" — it reduces what is owed. Marking one
      * paid would be meaningless and would corrupt the status vocabulary.
      */
-    public function markPaid(): void
+    public function markPaid(PaymentMethod $method = PaymentMethod::Other, ?User $by = null): Payment
     {
         throw InvoicingException::creditNoteNotPayable($this->label());
     }

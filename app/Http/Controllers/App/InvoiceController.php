@@ -62,7 +62,7 @@ class InvoiceController extends Controller
     public function show(Invoice $invoice): View
     {
         return view('app.invoices.show', [
-            'invoice' => $invoice->load('lines', 'customer', 'vatTransactions'),
+            'invoice' => $invoice->load('lines', 'customer', 'vatTransactions', 'payments.recordedBy'),
             'messages' => WhatsAppMessage::where('invoice_id', $invoice->id)->latest()->get(),
         ]);
     }
@@ -142,21 +142,6 @@ class InvoiceController extends Controller
         return redirect()
             ->route('app.invoices.show', $invoice)
             ->with('status', __('app.whatsapp.sent_ok'));
-    }
-
-    public function markPaid(Invoice $invoice): RedirectResponse
-    {
-        $this->authorize('manage-payroll');
-
-        try {
-            $invoice->markPaid();
-        } catch (InvoicingException $e) {
-            return back()->withErrors(['issue' => $e->getMessage()]);
-        }
-
-        return redirect()
-            ->route('app.invoices.show', $invoice)
-            ->with('status', __('app.invoices.paid_ok'));
     }
 
     public function void(Request $request, Invoice $invoice): RedirectResponse

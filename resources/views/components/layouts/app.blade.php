@@ -41,7 +41,7 @@
                 <span class="text-sm font-semibold text-warm-offwhite">{{ $business }}</span>
 
                 <nav class="ms-4 flex flex-wrap items-center gap-x-4 gap-y-1" aria-label="{{ __('app.nav.dashboard') }}">
-                    @foreach (['app.dashboard' => 'dashboard', 'app.invoices.index' => 'invoices', 'app.vat' => 'vat', 'app.payroll' => 'payroll', 'app.employees.index' => 'employees', 'app.customers.index' => 'customers', 'app.settings.exchange-rates' => 'rates'] as $route => $key)
+                    @foreach (['app.dashboard' => 'dashboard', 'app.invoices.index' => 'invoices', 'app.payments.outstanding' => 'outstanding', 'app.vat' => 'vat', 'app.payroll' => 'payroll', 'app.employees.index' => 'employees', 'app.customers.index' => 'customers', 'app.settings.exchange-rates' => 'rates'] as $route => $key)
                         <a
                             href="{{ route($route) }}"
                             @class(['rounded text-sm underline-offset-4 hover:underline', 'font-semibold text-warm-offwhite' => request()->routeIs($route), 'text-warm-offwhite/85' => ! request()->routeIs($route)])

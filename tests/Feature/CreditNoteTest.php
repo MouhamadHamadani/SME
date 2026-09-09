@@ -16,12 +16,6 @@ beforeEach(function () {
     $this->tenant = makeTenant('acme', ['name' => 'Acme Trading']);
 });
 
-/** An issued invoice inside the current tenant. */
-function issuedInvoice(?array $lines = null, string $on = '2026-02-10', array $overrides = []): Invoice
-{
-    return app(IssueInvoice::class)->issue(draftInvoice($lines, $overrides), Carbon::parse($on));
-}
-
 // -- The reason it exists ---------------------------------------------------
 
 it('credits into its own period, leaving a filed return untouched', function () {

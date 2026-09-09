@@ -50,6 +50,48 @@ class InvoicingException extends RuntimeException
         return new self("Invoice {$label} is not issued, so it cannot be marked paid.");
     }
 
+    public static function cannotPay(string $label): self
+    {
+        return new self(
+            "{$label} cannot take a payment. Only an issued invoice can — a draft is not owed yet, "
+            .'and a void one is not owed any more.'
+        );
+    }
+
+    public static function paymentCurrencyMismatch(string $label, string $invoiceCurrency, string $paid): self
+    {
+        return new self(
+            "{$label} is a {$invoiceCurrency} invoice and this payment is in {$paid}. Record it in "
+            ."{$invoiceCurrency}, or raise a credit note — converting it here would pick an exchange "
+            .'rate nobody agreed to and bury it in a receipt.'
+        );
+    }
+
+    public static function paymentNotPositive(): self
+    {
+        return new self('A payment has to be more than zero.');
+    }
+
+    public static function overPaying(string $label, string $remaining): self
+    {
+        return new self(
+            "That is more than {$label} still owes. At most {$remaining} remains outstanding."
+        );
+    }
+
+    public static function nothingToPay(string $label): self
+    {
+        return new self("{$label} has nothing left outstanding.");
+    }
+
+    public static function cannotVoidPaid(string $label): self
+    {
+        return new self(
+            "Invoice {$label} has payments recorded against it and cannot be voided. Voiding would "
+            .'erase a settled transaction; raise a credit note instead.'
+        );
+    }
+
     public static function creditNoteNotPayable(string $label): self
     {
         return new self("{$label} is a credit note. It reduces what is owed rather than being paid.");

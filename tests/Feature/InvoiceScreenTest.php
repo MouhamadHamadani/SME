@@ -13,22 +13,6 @@ beforeEach(function () {
     makeTenantUser($this->tenant, ['email' => 'owner@acme.test', 'role' => 'owner', 'locale' => 'en']);
 });
 
-function asUser(string $role = 'owner'): User
-{
-    tenancy()->initialize(test()->tenant);
-
-    $user = $role === 'owner'
-        ? User::where('role', 'owner')->sole()
-        : User::create([
-            'name' => ucfirst($role), 'email' => $role.'@acme.test',
-            'password' => 'password-12345', 'role' => $role, 'locale' => 'en',
-        ]);
-
-    test()->actingAs($user);
-
-    return $user;
-}
-
 function invoicePayload(array $overrides = []): array
 {
     return array_merge([
@@ -64,13 +48,13 @@ it('requires sign-in', function () {
 });
 
 it('shows an empty state', function () {
-    asUser();
+    signInAs();
 
     $this->get(tenantUrl('acme', '/invoices'))->assertOk()->assertSee('No invoices yet');
 });
 
 it('tells you to add a customer before invoicing', function () {
-    asUser();
+    signInAs();
 
     $this->get(tenantUrl('acme', '/invoices/new'))
         ->assertOk()
@@ -81,7 +65,7 @@ it('creates a draft with computed line amounts', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create(['name' => 'Beirut Foods']);
-    asUser();
+    signInAs();
 
     $this->post(tenantUrl('acme', '/invoices'), invoicePayload())->assertRedirect();
 
@@ -100,7 +84,7 @@ it('rejects an invoice with no lines', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create();
-    asUser();
+    signInAs();
 
     $this->from(tenantUrl('acme', '/invoices/new'))
         ->post(tenantUrl('acme', '/invoices'), invoicePayload(['lines' => []]))
@@ -111,7 +95,7 @@ it('rejects a bad quantity or price with a usable message', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create();
-    asUser();
+    signInAs();
 
     $this->from(tenantUrl('acme', '/invoices/new'))
         ->post(tenantUrl('acme', '/invoices'), invoicePayload([
@@ -131,7 +115,7 @@ it('requires an exchange rate on a USD invoice', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create();
-    asUser();
+    signInAs();
 
     $this->from(tenantUrl('acme', '/invoices/new'))
         ->post(tenantUrl('acme', '/invoices'), invoicePayload(['currency' => 'USD', 'lbp_per_usd' => '']))
@@ -142,7 +126,7 @@ it('issues from the screen and writes the VAT transaction', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create(['name' => 'Beirut Foods']);
-    asUser();
+    signInAs();
 
     $this->post(tenantUrl('acme', '/invoices'), invoicePayload());
 
@@ -174,7 +158,7 @@ it('sends you to the read-only view when editing an issued invoice', function ()
         app(IssueInvoice::class)->issue($invoice->fresh('lines'));
     });
 
-    asUser();
+    signInAs();
     tenancy()->initialize($this->tenant);
     $id = Invoice::sole()->id;
 
@@ -186,7 +170,7 @@ it('renders the issued invoice with its lines and declared VAT', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->vatRegistered('7654321')->create(['name' => 'Beirut Foods']);
-    asUser();
+    signInAs();
 
     $this->post(tenantUrl('acme', '/invoices'), invoicePayload());
     tenancy()->initialize($this->tenant);
@@ -203,20 +187,49 @@ it('renders the issued invoice with its lines and declared VAT', function () {
         ->assertSee('Declared for VAT');
 });
 
-it('marks paid and voids from the screen', function () {
+it('records a payment and voids from the screen', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create();
-    asUser();
+    signInAs();
 
     $this->post(tenantUrl('acme', '/invoices'), invoicePayload());
     tenancy()->initialize($this->tenant);
     $id = Invoice::sole()->id;
     $this->post(tenantUrl('acme', '/invoices/'.$id.'/issue'), ['due_days' => 30]);
 
-    $this->post(tenantUrl('acme', '/invoices/'.$id.'/paid'))->assertRedirect();
+    // Settling is now recording a payment, not flipping a flag. 2,500,000 net
+    // + 11% = 2,775,000.
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/payments'), [
+        'amount' => '2,775,000',
+        'currency' => 'LBP',
+        'method' => 'cash',
+        'received_on' => now()->toDateString(),
+    ])->assertRedirect();
+
+    tenancy()->initialize($this->tenant);
+    expect(Invoice::sole()->status)->toBe('paid')
+        ->and(Invoice::sole()->payments)->toHaveCount(1);
+
+    // And voiding it is now refused, because that would erase a settled
+    // transaction. A separate, unpaid invoice is what voids.
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/void'), ['void_reason' => 'Duplicate'])
+        ->assertSessionHasErrors('issue');
+
     tenancy()->initialize($this->tenant);
     expect(Invoice::sole()->status)->toBe('paid');
+});
+
+it('voids an unpaid invoice from the screen', function () {
+    vatSchedule();
+    tenancy()->initialize($this->tenant);
+    Customer::factory()->create();
+    signInAs();
+
+    $this->post(tenantUrl('acme', '/invoices'), invoicePayload());
+    tenancy()->initialize($this->tenant);
+    $id = Invoice::sole()->id;
+    $this->post(tenantUrl('acme', '/invoices/'.$id.'/issue'), ['due_days' => 30]);
 
     $this->post(tenantUrl('acme', '/invoices/'.$id.'/void'), ['void_reason' => 'Duplicate'])->assertRedirect();
     tenancy()->initialize($this->tenant);
@@ -228,7 +241,7 @@ it('does not let staff create, issue or void', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create();
-    asUser('staff');
+    signInAs('staff');
 
     $this->get(tenantUrl('acme', '/invoices/new'))->assertForbidden();
     $this->post(tenantUrl('acme', '/invoices'), invoicePayload())->assertForbidden();
@@ -239,10 +252,10 @@ it('still lets staff read invoices', function () {
     vatSchedule();
     tenancy()->initialize($this->tenant);
     Customer::factory()->create(['name' => 'Beirut Foods']);
-    asUser();
+    signInAs();
     $this->post(tenantUrl('acme', '/invoices'), invoicePayload());
 
-    asUser('staff');
+    signInAs('staff');
     $this->get(tenantUrl('acme', '/invoices'))
         ->assertOk()
         ->assertSee('Beirut Foods')
@@ -250,7 +263,7 @@ it('still lets staff read invoices', function () {
 });
 
 it('manages customers', function () {
-    asUser();
+    signInAs();
 
     $this->post(tenantUrl('acme', '/customers'), [
         'name' => 'Beirut Foods', 'phone' => '+961 3 111222', 'vat_number' => '7654321',

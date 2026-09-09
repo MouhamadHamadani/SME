@@ -24,12 +24,15 @@ Launch blockers and placeholder content are in
 5. **Invoicing** — customers, invoices, credit notes, gap-free numbering.
    Issuing WRITES the VAT transactions the return reads.
    **Read [docs/INVOICING.md](docs/INVOICING.md) first.**
-6. **WhatsApp delivery** — Meta Cloud API, per-business credentials, signed
+6. **Payments & receipts** — a payments ledger with the invoice's balance and
+   paid state derived from it, numbered receipts, outstanding balances.
+   **Read [docs/PAYMENTS-STATUS.md](docs/PAYMENTS-STATUS.md) first.**
+7. **WhatsApp delivery** — Meta Cloud API, per-business credentials, signed
    delivery webhooks. **Read [docs/WHATSAPP.md](docs/WHATSAPP.md) first.**
-7. **Dual currency** — the market rate and the MoF-prescribed rate as two
+8. **Dual currency** — the market rate and the MoF-prescribed rate as two
    independent daily figures, plus revaluation.
    **Read [docs/DUAL-CURRENCY-STATUS.md](docs/DUAL-CURRENCY-STATUS.md) first.**
-8. **End-of-service indemnity** — seniority coefficients behind a swappable
+9. **End-of-service indemnity** — seniority coefficients behind a swappable
    strategy, formula-versioned accrual ledger.
    **Read [docs/EOSI-STATUS.md](docs/EOSI-STATUS.md) first.**
 
@@ -91,6 +94,12 @@ No billing and no self-serve signup.
   amounts into taxable turnover and misstates the return. Regression test.
 - **Issued invoices are immutable and their numbers are never reused.**
   Void while the VAT period is open; credit note after it is filed.
+- **An invoice's paid state is DERIVED from its payments**, never set. Nothing
+  may write `status = paid` outside `App\Invoicing\RecordPayment`, which only
+  does so with a committed `Payment` row beside it. A payment must match the
+  invoice's currency — refuse, never convert — and **an invoice with any
+  payment cannot be voided**: that erases a settled transaction. Receipt
+  numbers use the same `lockForUpdate` series discipline as invoice numbers.
 - **Invoices and credit notes share the `invoices` table**, separated by
   `document_type` and a GLOBAL SCOPE per model. Never query that table without
   going through Invoice or CreditNote. Relation foreign keys are named
@@ -152,7 +161,7 @@ php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
 php artisan exchange:rate   # the day's market and Ministry LBP/USD rates
 php artisan eosi:accrue <business>   # freeze end-of-service estimates
-./vendor/bin/pest      # 323 tests (SQLite)
+./vendor/bin/pest      # 350 tests (SQLite)
 ./vendor/bin/pest -c phpunit.mysql.xml   # the same suite against real MySQL
 ```
 
@@ -162,7 +171,8 @@ rebuild.
 
 ## Not built yet (deliberate)
 
-Invoice PDF · inbound WhatsApp messages · payments · family-allowance benefit ·
+Invoice and receipt PDF · inbound WhatsApp messages · refunds and payment
+reversal · one payment across several invoices · family-allowance benefit ·
 part-month pro-rating · self-serve signup and Whish/OMT billing (Phase 2) ·
 password reset · CRM or email automation · final logo · native-reviewed
 Arabic · real photography. Payroll gaps are listed in docs/PAYROLL.md §6.

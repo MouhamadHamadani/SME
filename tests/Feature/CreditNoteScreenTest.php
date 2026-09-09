@@ -14,40 +14,6 @@ beforeEach(function () {
     makeTenantUser($this->tenant, ['email' => 'owner@acme.test', 'role' => 'owner', 'locale' => 'en']);
 });
 
-/** An issued invoice, returning its id. */
-function seedIssuedInvoice(): int
-{
-    return test()->tenant->run(function () {
-        $customer = Customer::factory()->create(['name' => 'Beirut Foods']);
-        $invoice = Invoice::create([
-            'customer_id' => $customer->id, 'status' => 'draft', 'currency' => Currency::LBP,
-        ]);
-        $invoice->lines()->create([
-            'position' => 0, 'description' => 'Consulting', 'quantity_milli' => 1000,
-            'unit_price_minor' => 1_000_000, 'treatment' => VatTreatment::Standard,
-            'net_minor' => 0, 'vat_minor' => 0,
-        ]);
-
-        return app(IssueInvoice::class)->issue($invoice->fresh('lines'), Carbon::parse('2026-02-10'))->id;
-    });
-}
-
-function signInAs(string $role = 'owner'): User
-{
-    tenancy()->initialize(test()->tenant);
-
-    $user = $role === 'owner'
-        ? User::where('role', 'owner')->sole()
-        : User::create([
-            'name' => ucfirst($role), 'email' => $role.'@acme.test',
-            'password' => 'password-12345', 'role' => $role, 'locale' => 'en',
-        ]);
-
-    test()->actingAs($user);
-
-    return $user;
-}
-
 it('offers to credit an issued invoice', function () {
     vatSchedule();
     $id = seedIssuedInvoice();

@@ -69,19 +69,27 @@ class ExchangeRateController extends Controller
     {
         $today = ExchangeRate::asOf(Carbon::today());
 
+        /*
+         * What is still OWED in USD, not what was invoiced in USD. Since
+         * payments exist, an invoice half collected carries half the FX
+         * exposure — revaluing it at its full total overstates the movement by
+         * exactly what has already been banked. balance() nets credit notes
+         * too, for the same reason.
+         */
         $outstanding = Invoice::query()
             ->issued()
-            ->whereNull('paid_at')
             ->where('currency', Currency::USD->value)
             ->with('customer')
             ->orderBy('issued_on')
-            ->get();
+            ->get()
+            ->reject(fn (Invoice $invoice) => $invoice->balance()->isZero())
+            ->values();
 
         $marketRate = $today?->rateFor(RateBasis::Market);
         $mofRate = $today?->rateFor(RateBasis::Mof);
 
         $rows = $outstanding->map(function (Invoice $invoice) use ($marketRate, $mofRate) {
-            $total = $invoice->total();
+            $total = $invoice->balance();
 
             return [
                 'invoice' => $invoice,

@@ -18,11 +18,7 @@
 
         <div class="flex flex-wrap items-center gap-3">
             @unless ($invoice->isDraft() || $invoice->isVoid())
-                <x-status-badge :status="$invoice->statusKey()">
-                    {{ $invoice->isPaid()
-                        ? __('app.invoices.status_paid')
-                        : ($invoice->isOverdue() ? __('app.invoices.status_overdue') : __('app.invoices.status_issued')) }}
-                </x-status-badge>
+                <x-status-badge :status="$invoice->statusKey()">{{ $invoice->statusLabel() }}</x-status-badge>
             @endunless
             <x-button :href="route('app.invoices.index')" variant="ghost" size="md">{{ __('app.invoices.back') }}</x-button>
         </div>
@@ -196,13 +192,10 @@
             @endunless
             @if ($canManage && $invoice->document_type === 'invoice' && ! $invoice->isDraft() && ! $invoice->isVoid())
                 <x-card tone="light">
-                    @unless ($invoice->isPaid())
-                        <form method="POST" action="{{ route('app.invoices.mark-paid', $invoice) }}">
-                            @csrf
-                            <x-button type="submit" variant="primary" size="md" class="w-full">
-                                {{ __('app.invoices.mark_paid') }}
-                            </x-button>
-                        </form>
+                    @unless ($invoice->balance()->isZero())
+                        <x-button :href="route('app.payments.create', $invoice)" variant="primary" size="md" class="w-full">
+                            {{ __('app.payments.record') }}
+                        </x-button>
                     @endunless
 
                     {{-- Crediting is the correction that works after the VAT
@@ -229,6 +222,56 @@
                             onclick="return confirm(@js(__('app.invoices.void_confirm')))"
                         >{{ __('app.invoices.void') }}</x-button>
                     </form>
+                </x-card>
+            @endif
+
+            {{-- What has actually been received, and what is still owed.
+                 The balance nets credit notes as well as payments, so this is
+                 one figure rather than two halves the reader has to combine. --}}
+            @if (! $invoice->isDraft() && ! $invoice->isVoid() && $invoice->document_type === 'invoice')
+                <x-card tone="light">
+                    <h2 class="font-semibold text-trust-navy">{{ __('app.payments.heading') }}</h2>
+
+                    @if ($invoice->payments->isEmpty())
+                        <p class="mt-2 text-sm text-warm-charcoal/70">{{ __('app.payments.none') }}</p>
+                    @else
+                        <ul class="mt-3 space-y-3">
+                            @foreach ($invoice->payments as $payment)
+                                <li class="border-b border-warm-charcoal/8 pb-3 last:border-0 last:pb-0">
+                                    <div class="flex flex-wrap items-baseline justify-between gap-2">
+                                        <a href="{{ route('app.payments.receipt', $payment) }}"
+                                           class="rounded font-medium text-trust-navy underline-offset-4 hover:underline">
+                                            {{ $payment->method->label() }}
+                                        </a>
+                                        <span class="tabular-nums font-semibold text-warm-charcoal" dir="ltr">
+                                            {{ $payment->amount()->format() }} {{ $payment->currency->value }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs tabular-nums text-warm-charcoal/70" dir="ltr">
+                                        {{ $payment->received_on->toDateString() }}
+                                        @if ($payment->reference) &middot; {{ $payment->reference }} @endif
+                                    </p>
+                                    <p class="text-xs text-warm-charcoal/70">
+                                        {{ __('app.payments.recorded_by') }}:
+                                        {{ $payment->recordedBy?->name ?? __('app.payments.recorded_by_unknown') }}
+                                    </p>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+
+                    <dl class="mt-4 space-y-2 border-t border-warm-charcoal/12 pt-3 text-sm">
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-warm-charcoal">{{ __('app.payments.paid_to_date') }}</dt>
+                            <dd class="tabular-nums text-warm-charcoal/80" dir="ltr">{{ $invoice->amountPaid()->format() }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-3">
+                            <dt class="font-semibold text-warm-charcoal">{{ __('app.payments.balance') }}</dt>
+                            <dd class="tabular-nums font-semibold text-trust-navy" dir="ltr">
+                                {{ $invoice->balance()->format() }} {{ $currency }}
+                            </dd>
+                        </div>
+                    </dl>
                 </x-card>
             @endif
 

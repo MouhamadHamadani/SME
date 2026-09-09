@@ -130,7 +130,7 @@ stale link, not an error worth a page.
 |---|---|---|
 | `draft` | yes | No number, not on any VAT return |
 | `issued` | **no** | Tax record. Void or credit-note it |
-| `paid` | **no** | |
+| `paid` | **no** | Derived: the balance reached zero. See §8 |
 | `void` | **no** | Number kept, VAT transactions removed |
 
 Voiding an invoice deletes the VAT transactions it wrote, so the return stops
@@ -159,8 +159,9 @@ Everything integer, via `App\Support\Money`:
 ## 6. Who can do what
 
 Same `manage-payroll` gate as payroll and VAT: **owner and accountant** can
-create, issue, void and mark paid. **Staff can read.** See
-[PAYROLL.md](PAYROLL.md) for the reasoning and how to change it.
+create, issue, void and record payments. **Staff can read**, balances and
+receipts included. See [PAYROLL.md](PAYROLL.md) for the reasoning and how to
+change it.
 
 ---
 
@@ -179,14 +180,32 @@ that touches a regulatory figure — see [VAT.md §1](VAT.md).
 
 ---
 
-## 8. Not built yet
+## 8. Payments
+
+An invoice's paid state is **derived from real payment records**, not a flag
+somebody sets. `balance()` is the total less credit notes less payments, and
+there is no code path that marks an invoice paid without a `Payment` row behind
+it. Two consequences that belong here rather than only in the payments doc:
+
+- **Voiding an invoice with any payment recorded is refused.** Void erases; a
+  settled transaction must not be erased. Credit-note it, the same answer as
+  after a VAT period is filed.
+- **Overdue and partly paid is a real state now.** It badges **red**, and the
+  label says both. See `Invoice::statusLabel()`.
+
+Full design, rules and deliberate gaps: **[PAYMENTS-STATUS.md](PAYMENTS-STATUS.md)**.
+
+---
+
+## 9. Not built yet
 
 - **WhatsApp delivery is built** — see [WHATSAPP.md](WHATSAPP.md). It needs a
   verified Meta number and an approved template before it can actually send;
   the default driver writes to the log.
 - **PDF / print.** The invoice view is HTML only. No PDF, no print stylesheet.
-- **Payments.** `paid_at` is a flag, not a payment record — no partial
-  payments, no allocation, no receipts.
+- **One payment settling several invoices.** A payment belongs to exactly one
+  invoice — see [PAYMENTS-STATUS.md](PAYMENTS-STATUS.md).
+- **Refunds and payment reversal.** A recorded payment cannot be undone.
 - **Recurring invoices, quotes, delivery notes.**
 - **Per-line discounts and invoice-level discounts.**
 - **Purchase-side invoices.** Input VAT still comes from `vat_transactions`
@@ -194,7 +213,7 @@ that touches a regulatory figure — see [VAT.md §1](VAT.md).
 
 ---
 
-## 9. Tests
+## 10. Tests
 
 `InvoicingTest` — line arithmetic and rounding, per-line VAT summation,
 sequential gap-free numbering, no number on drafts, no reuse after voiding,
@@ -214,6 +233,9 @@ USD, and tenant isolation.
 
 `CreditNoteScreenTest` — crediting from the invoice screen, the linked view,
 credit notes staying off the invoice list, the role gate, and Arabic RTL.
+
+`PaymentTest` / `PaymentScreenTest` — the payments ledger; see
+[PAYMENTS-STATUS.md](PAYMENTS-STATUS.md).
 
 `PartialCreditNoteTest` — the pre-filled form, partial amounts, a second
 credit up to the remaining balance, the over-credit refusal leaving nothing

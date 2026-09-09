@@ -63,9 +63,7 @@
                                         </span>
                                     @else
                                         <x-status-badge :status="$invoice->statusKey()">
-                                            {{ $invoice->isPaid()
-                                                ? __('app.invoices.status_paid')
-                                                : ($invoice->isOverdue() ? __('app.invoices.status_overdue') : __('app.invoices.status_issued')) }}
+                                            {{ $invoice->statusLabel() }}
                                         </x-status-badge>
                                     @endif
                                 </td>

@@ -9,6 +9,7 @@ use App\Http\Controllers\App\EmployeeController;
 use App\Http\Controllers\App\EosiController;
 use App\Http\Controllers\App\ExchangeRateController;
 use App\Http\Controllers\App\InvoiceController;
+use App\Http\Controllers\App\PaymentController;
 use App\Http\Controllers\App\PayrollController;
 use App\Http\Controllers\App\VatController;
 use App\Http\Controllers\App\WhatsAppSettingsController;
@@ -64,7 +65,21 @@ Route::domain('{tenant}.'.config('tenancy.app_domain'))
             Route::get('/invoices/{invoice}/edit', [InvoiceController::class, 'edit'])->name('app.invoices.edit');
             Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('app.invoices.update');
             Route::post('/invoices/{invoice}/issue', [InvoiceController::class, 'issue'])->name('app.invoices.issue');
-            Route::post('/invoices/{invoice}/paid', [InvoiceController::class, 'markPaid'])->name('app.invoices.mark-paid');
+
+            /*
+             | Payments. Recording is gated on manage-payroll inside the
+             | controller and the form request; VIEWING a balance, the payment
+             | history and a receipt is open to any signed-in seat, the same
+             | split invoicing already uses.
+             |
+             | There is no "mark paid" route any more. Marking an invoice paid
+             | without recording what was received, how and when is exactly the
+             | gap this module closes — see docs/PAYMENTS-STATUS.md.
+             */
+            Route::get('/invoices/{invoice}/payments/new', [PaymentController::class, 'create'])->name('app.payments.create');
+            Route::post('/invoices/{invoice}/payments', [PaymentController::class, 'store'])->name('app.payments.store');
+            Route::get('/receipts/{payment}', [PaymentController::class, 'show'])->name('app.payments.receipt');
+            Route::get('/outstanding', [PaymentController::class, 'outstanding'])->name('app.payments.outstanding');
             Route::post('/invoices/{invoice}/whatsapp', [InvoiceController::class, 'sendWhatsApp'])->name('app.invoices.whatsapp');
             Route::post('/invoices/{invoice}/void', [InvoiceController::class, 'void'])->name('app.invoices.void');
 

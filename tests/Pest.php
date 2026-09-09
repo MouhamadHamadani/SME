@@ -1,9 +1,15 @@
 <?php
 
+use App\Invoicing\IssueInvoice;
+use App\Models\Customer;
+use App\Models\Invoice;
 use App\Models\NssfRateSchedule;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VatRateSchedule;
+use App\Support\Currency;
+use App\Vat\VatTreatment;
+use Illuminate\Support\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -128,4 +134,68 @@ function vatVerified(array $overrides = []): VatRateSchedule
 function tenantUrl(string $subdomain, string $path = '/'): string
 {
     return 'http://'.$subdomain.'.'.config('tenancy.app_domain').$path;
+}
+
+/** A draft invoice with lines, inside the current tenant. */
+function draftInvoice(?array $lines = null, array $overrides = []): Invoice
+{
+    $invoice = Invoice::create(array_merge([
+        'customer_id' => Customer::factory()->create()->id,
+        'status' => 'draft',
+        'currency' => Currency::LBP,
+    ], $overrides));
+
+    foreach ($lines ?? [['qty' => 1000, 'price' => 1_000_000, 'treatment' => VatTreatment::Standard]] as $i => $l) {
+        $invoice->lines()->create([
+            'position' => $i,
+            'description' => $l['description'] ?? 'Line '.($i + 1),
+            'quantity_milli' => $l['qty'],
+            'unit_price_minor' => $l['price'],
+            'treatment' => $l['treatment'] ?? VatTreatment::Standard,
+            'net_minor' => 0,
+            'vat_minor' => 0,
+        ]);
+    }
+
+    return $invoice->fresh('lines');
+}
+
+/** An issued invoice inside the current tenant. */
+function issuedInvoice(?array $lines = null, string $on = '2026-02-10', array $overrides = []): Invoice
+{
+    return app(IssueInvoice::class)->issue(draftInvoice($lines, $overrides), Carbon::parse($on));
+}
+
+/** An issued invoice, returning its id. */
+function seedIssuedInvoice(): int
+{
+    return test()->tenant->run(function () {
+        $customer = Customer::factory()->create(['name' => 'Beirut Foods']);
+        $invoice = Invoice::create([
+            'customer_id' => $customer->id, 'status' => 'draft', 'currency' => Currency::LBP,
+        ]);
+        $invoice->lines()->create([
+            'position' => 0, 'description' => 'Consulting', 'quantity_milli' => 1000,
+            'unit_price_minor' => 1_000_000, 'treatment' => VatTreatment::Standard,
+            'net_minor' => 0, 'vat_minor' => 0,
+        ]);
+
+        return app(IssueInvoice::class)->issue($invoice->fresh('lines'), Carbon::parse('2026-02-10'))->id;
+    });
+}
+
+function signInAs(string $role = 'owner'): User
+{
+    tenancy()->initialize(test()->tenant);
+
+    $user = $role === 'owner'
+        ? User::where('role', 'owner')->sole()
+        : User::create([
+            'name' => ucfirst($role), 'email' => $role.'@acme.test',
+            'password' => 'password-12345', 'role' => $role, 'locale' => 'en',
+        ]);
+
+    test()->actingAs($user);
+
+    return $user;
 }

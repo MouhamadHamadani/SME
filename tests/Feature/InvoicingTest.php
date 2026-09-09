@@ -15,30 +15,6 @@ beforeEach(function () {
     $this->tenant = makeTenant('acme', ['name' => 'Acme Trading']);
 });
 
-/** A draft invoice with lines, inside the current tenant. */
-function draftInvoice(?array $lines = null, array $overrides = []): Invoice
-{
-    $invoice = Invoice::create(array_merge([
-        'customer_id' => Customer::factory()->create()->id,
-        'status' => 'draft',
-        'currency' => Currency::LBP,
-    ], $overrides));
-
-    foreach ($lines ?? [['qty' => 1000, 'price' => 1_000_000, 'treatment' => VatTreatment::Standard]] as $i => $l) {
-        $invoice->lines()->create([
-            'position' => $i,
-            'description' => $l['description'] ?? 'Line '.($i + 1),
-            'quantity_milli' => $l['qty'],
-            'unit_price_minor' => $l['price'],
-            'treatment' => $l['treatment'] ?? VatTreatment::Standard,
-            'net_minor' => 0,
-            'vat_minor' => 0,
-        ]);
-    }
-
-    return $invoice->fresh('lines');
-}
-
 // -- Line arithmetic --------------------------------------------------------
 
 it('multiplies quantity by unit price exactly', function () {
@@ -385,16 +361,22 @@ it('will not void a draft', function () {
 
 // -- Lifecycle --------------------------------------------------------------
 
-it('marks an issued invoice paid', function () {
+it('marks an issued invoice paid, with a real payment behind it', function () {
     vatSchedule();
 
     $this->tenant->run(function () {
         $invoice = app(IssueInvoice::class)->issue(draftInvoice());
         $invoice->markPaid();
 
+        // The flag still flips, but only as a cache of what the payments say:
+        // there is a Payment row for the full amount underneath it.
         expect($invoice->fresh()->status)->toBe('paid')
             ->and($invoice->fresh()->paid_at)->not->toBeNull()
-            ->and($invoice->fresh()->statusKey())->toBe('filed');
+            ->and($invoice->fresh()->statusKey())->toBe('filed')
+            ->and($invoice->fresh()->payments)->toHaveCount(1)
+            ->and($invoice->fresh()->amountPaid()->minorUnits)->toBe($invoice->total_minor)
+            ->and($invoice->fresh()->balance()->isZero())->toBeTrue()
+            ->and($invoice->fresh()->isFullyPaid())->toBeTrue();
     });
 });
 
