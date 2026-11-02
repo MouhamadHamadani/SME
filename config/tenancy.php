@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use App\Models\Tenant;
+use App\Tenancy\ScopedMySQLDatabaseManager;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain;
-use Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager;
 use Stancl\Tenancy\TenantDatabaseManagers\PostgreSQLDatabaseManager;
 use Stancl\Tenancy\TenantDatabaseManagers\SQLiteDatabaseManager;
 use Stancl\Tenancy\UUIDGenerator;
@@ -80,15 +80,17 @@ return [
          */
         'managers' => [
             'sqlite' => SQLiteDatabaseManager::class,
-            'mysql' => MySQLDatabaseManager::class,
-            'mariadb' => MySQLDatabaseManager::class,
-            'pgsql' => PostgreSQLDatabaseManager::class,
 
-        /**
-         * Use this database manager for MySQL to have a DB user created for each tenant database.
-         * You can customize the grants given to these users by changing the $grants property.
-         */
-            // 'mysql' => Stancl\Tenancy\TenantDatabaseManagers\PermissionControlledMySQLDatabaseManager::class,
+            /*
+             * Each tenant database gets its OWN MySQL user, granted on that
+             * schema only, so MySQL — not just the app picking a database
+             * name — refuses cross-tenant access. Tenants created before this
+             * need `php artisan tenants:provision-db-users` once.
+             * See docs/TENANCY-HARDENING-STATUS.md.
+             */
+            'mysql' => ScopedMySQLDatabaseManager::class,
+            'mariadb' => ScopedMySQLDatabaseManager::class,
+            'pgsql' => PostgreSQLDatabaseManager::class,
 
         /**
          * Disable the pgsql manager above, and enable the one below if you

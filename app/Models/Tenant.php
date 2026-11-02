@@ -29,6 +29,21 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     public const PLANS = ['starter', 'growth', 'pro'];
 
     /**
+     * The tenant's own MySQL credential, which stancl keeps in `data`
+     * (ScopedMySQLDatabaseManager). Encrypted for the same reason as the
+     * WhatsApp token below, and never serialised.
+     *
+     * Encrypted under APP_KEY: rotate it only via APP_PREVIOUS_KEYS, or every
+     * tenant loses its database connection.
+     */
+    protected $hidden = ['tenancy_db_username', 'tenancy_db_password'];
+
+    protected function casts(): array
+    {
+        return ['tenancy_db_password' => 'encrypted'];
+    }
+
+    /**
      * stancl stores anything not listed here inside the `data` JSON column.
      * Promoting these to real columns keeps them queryable from the central
      * database (e.g. "every tenant on the growth plan").

@@ -19,9 +19,14 @@ it is the public front door. You reach a business's app at *its own subdomain*.
 ```bash
 composer install && npm install
 npm run build
-php artisan migrate
+php artisan deploy:migrate
 php artisan serve
 ```
+
+`deploy:migrate`, not `migrate`: every business has its own database, and
+`migrate` reaches only the central one. A bare `migrate` that leaves a tenant
+behind now exits non-zero and says so — see
+[TENANCY-HARDENING-STATUS.md](TENANCY-HARDENING-STATUS.md).
 
 `php artisan serve` listens on `localhost:8000`.
 
@@ -222,6 +227,11 @@ mysql -u root -e "CREATE DATABASE sme_test_central CHARACTER SET utf8mb4 COLLATE
 ```
 
 This one **does** create and drop real databases (`sme_test_central` and a
-`tenant…` database per test), so point it at a local MySQL you do not mind it
-churning. It is much slower than the SQLite run — a pre-release gate, not the
-inner loop.
+`tenant…` database per test) **and real MySQL users** (one `t_…` user per
+tenant), so point it at a local MySQL you do not mind it churning, with a
+credential that holds `CREATE USER` and `GRANT OPTION`. It is much slower than
+the SQLite run — a pre-release gate, not the inner loop.
+
+`TenantDatabaseUserTest` — the proof that MySQL itself refuses one tenant's
+credential another tenant's schema — only means anything here. On SQLite its
+MySQL tests are reported as skipped.

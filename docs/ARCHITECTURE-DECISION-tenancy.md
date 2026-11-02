@@ -279,3 +279,24 @@ per-tenant database users via `PermissionControlledMySQLDatabaseManager` —
 are adopted as the follow-up work, not left open. They do not block anything
 already shipped; they close the two real operational gaps this document
 identified.
+
+---
+
+## Addendum, 2 November 2026: both hardening items closed
+
+Built on top of `ba01808`. Details, limitations and the deploy runbook:
+**[TENANCY-HARDENING-STATUS.md](TENANCY-HARDENING-STATUS.md)**.
+
+- **Migration fan-out — closed.** `php artisan deploy:migrate` migrates central
+  and then each tenant inside maintenance mode, logs every tenant, stops at the
+  first failure, resumes by re-running (finished tenants are skipped), and
+  fails unless every tenant ends on the same applied migrations. A bare
+  `migrate` that leaves any tenant behind now exits non-zero.
+- **MySQL-enforced isolation — closed.** Every tenant database has its own
+  MySQL user granted on that schema only, created with the tenant and dropped
+  with it. A test connects as one tenant's user and is refused another
+  tenant's schema by MySQL itself. Existing tenants move over with
+  `php artisan tenants:provision-db-users`.
+
+The "Consequences" above that read *"manual and unmonitored"* and *"one
+credential, all databases"* describe the state before this addendum.

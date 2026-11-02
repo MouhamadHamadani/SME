@@ -145,7 +145,7 @@ Target WCAG AA. Three measured results that are easy to get wrong:
 ```
 composer install && npm install
 npm run build          # required after adding any new Tailwind class
-php artisan migrate
+php artisan deploy:migrate      # central + every tenant; never bare `migrate`
 php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md

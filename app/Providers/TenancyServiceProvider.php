@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Tenancy\ScopedMySQLDatabaseManager;
+use App\Tenancy\TenantMigrations;
 use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Database\Events\MigrationsEnded;
+use Illuminate\Database\Events\NoPendingMigrations;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use RuntimeException;
 use Stancl\JobPipeline\JobPipeline;
+use Stancl\Tenancy\DatabaseConfig;
 use Stancl\Tenancy\Events;
 use Stancl\Tenancy\Jobs;
 use Stancl\Tenancy\Listeners;
@@ -104,6 +110,36 @@ class TenancyServiceProvider extends ServiceProvider
         $this->mapRoutes();
 
         $this->makeTenancyMiddlewareHighestPriority();
+
+        DatabaseConfig::generateUsernamesUsing(ScopedMySQLDatabaseManager::usernameFor(...));
+        $this->guardBareMigrate();
+    }
+
+    /**
+     * `migrate` reaches the central database only. Before deploy:migrate, a
+     * release carrying only tenant migrations printed "Nothing to migrate",
+     * exited 0 and left every tenant on the old schema. Now a central
+     * `migrate` that leaves any tenant behind throws, so it exits non-zero
+     * and says what to run instead.
+     */
+    protected function guardBareMigrate(): void
+    {
+        Event::listen([MigrationsEnded::class, NoPendingMigrations::class], function (MigrationsEnded|NoPendingMigrations $event) {
+            if ($event->method !== 'up'
+                || TenantMigrations::$deploying
+                || tenancy()->initialized
+                || ($event instanceof MigrationsEnded && ($event->options['pretend'] ?? false))) {
+                return;
+            }
+
+            if ($behind = TenantMigrations::behind()) {
+                throw new RuntimeException(sprintf(
+                    '`migrate` migrated the central database only. %d tenant database(s) are still behind (%s). Run `php artisan deploy:migrate`.',
+                    count($behind),
+                    implode(', ', array_slice(array_keys($behind), 0, 5)).(count($behind) > 5 ? ', …' : ''),
+                ));
+            }
+        });
     }
 
     protected function bootEvents()

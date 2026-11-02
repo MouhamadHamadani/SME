@@ -327,6 +327,10 @@ function asEosiUser(string $role = 'owner'): User
 }
 
 it('shows the estimate and its working to any signed-in user', function () {
+    // The screen values service as of today, and makeEmployee() starts on
+    // 2016-09-01: 8,500.00 is exactly 120 months. Unfrozen, this went red in
+    // October 2026 when the real clock reached 121.
+    $this->travelTo(Carbon::parse('2026-09-08'));
     tenancy()->initialize($this->tenant);
     $employee = makeEmployee();
     asEosiUser('staff');

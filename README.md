@@ -62,7 +62,7 @@ the hard rules that cost real debugging time to learn.
 ```bash
 composer install && npm install
 cp .env.example .env && php artisan key:generate
-php artisan migrate
+php artisan deploy:migrate   # central + every tenant; never bare `migrate`
 php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 npm run build
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000

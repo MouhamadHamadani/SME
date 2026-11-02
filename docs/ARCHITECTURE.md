@@ -51,6 +51,12 @@ also makes "export or delete everything for this business" one operation.
 | Resolution | `acme.{app_domain}` → tenant `acme` |
 | Domain source | `config('tenancy.app_domain')`, derived from `APP_URL` — **one** source of truth for routing and provisioning |
 
+**MySQL enforces the separation, not just the app.** Each tenant database has
+its own MySQL user, granted on that schema only, created with the database and
+dropped with the tenant (`App\Tenancy\ScopedMySQLDatabaseManager`). Schema
+changes reach every tenant through `php artisan deploy:migrate`, never bare
+`migrate`. Both are in [TENANCY-HARDENING-STATUS.md](TENANCY-HARDENING-STATUS.md).
+
 `plan` is `starter|growth|pro`, matching the published §7 pricing exactly. Keep
 it in step with the `pricing.tiers` keys in the marketing lang files.
 
@@ -315,9 +321,10 @@ to one without the other renders a raw key on the other page.
 
 ## Tests
 
-Pest, `./vendor/bin/pest`. **323 tests, green on SQLite and on real MySQL**
-(`./vendor/bin/pest -c phpunit.mysql.xml`, ~11 minutes — it creates and drops a
-real database per tenant test).
+Pest, `./vendor/bin/pest`. **366 tests, green on SQLite and on real MySQL**
+(`./vendor/bin/pest -c phpunit.mysql.xml`, ~12 minutes — it creates and drops a
+real database and MySQL user per tenant test). On SQLite, 9 MySQL-only tests
+report as skipped.
 
 Run the MySQL one before a release. SQLite forgives what MySQL does not, and
 two defects here were exactly that divergence: a VAT quarter whose last day was
@@ -349,6 +356,12 @@ has asked them to.
   rate limiting; Arabic RTL by default; language preference persisted; `noindex`
 - `TenantInfrastructureTest` — the central/tenant table split, and the
   database-driver session/cache path the array drivers hide
+- `DeployMigrateTest` — the tenant migration fan-out: maintenance mode,
+  per-tenant logging, resume after a failure, the post-run sync assertion, and
+  a bare `migrate` failing when tenants are behind
+- `TenantDatabaseUserTest` — **MySQL only** (skipped on SQLite): a MySQL user
+  per tenant, its grants, MySQL refusing a cross-tenant read, the encrypted
+  password, user dropped on delete, the backfill command's idempotency
 
 **Payroll** — see [PAYROLL.md](PAYROLL.md)
 

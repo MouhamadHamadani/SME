@@ -36,9 +36,10 @@ Launch blockers and placeholder content are in
    strategy, formula-versioned accrual ledger.
    **Read [docs/EOSI-STATUS.md](docs/EOSI-STATUS.md) first.**
 
-Tenancy is one database per business. Whether that should stay that way is an
-open business decision with a written recommendation:
+Tenancy is one database per business — decided and closed on 2 November 2026:
 **[docs/ARCHITECTURE-DECISION-tenancy.md](docs/ARCHITECTURE-DECISION-tenancy.md)**.
+Its hardening — deploy-time tenant migrations, a MySQL user per tenant — is in
+**[docs/TENANCY-HARDENING-STATUS.md](docs/TENANCY-HARDENING-STATUS.md)**.
 
 How to run it and sign in as a tenant: **[docs/RUNNING.md](docs/RUNNING.md)**.
 
@@ -54,6 +55,14 @@ No billing and no self-serve signup.
   `cache` and `jobs` connections are pinned to the central connection. Unpinning
   any of them makes every authenticated page 500, and the test suite's array
   drivers will NOT catch it.
+- **Deploys run `php artisan deploy:migrate`, never bare `migrate`.** `migrate`
+  reaches the central database only. A bare `migrate` that leaves any tenant
+  behind fails on purpose — do not "fix" that. A failed deploy resumes by
+  re-running it.
+- **Each tenant connects as its own MySQL user**, granted on its own schema only
+  (`App\Tenancy\ScopedMySQLDatabaseManager`). The password sits encrypted in
+  `tenants.data` and `$hidden` on Tenant — never log it, never serialise a
+  Tenant to a browser. Rotate `APP_KEY` only with `APP_PREVIOUS_KEYS`.
 - **Never remove `TenantRouteParameter` from the tenant route group.** Without
   it, route parameters are passed positionally and every controller taking a
   model receives the tenant subdomain string instead. Read its docblock first.
@@ -154,14 +163,15 @@ Target WCAG AA. Three measured results that are easy to get wrong:
 ```
 composer install && npm install
 npm run build          # required after adding any new Tailwind class
-php artisan migrate
+php artisan deploy:migrate      # central + every tenant, in maintenance mode
+php artisan tenants:provision-db-users   # once: own MySQL user for older tenants
 php artisan tenant:create "Acme" acme --owner-name="A" --owner-email=a@acme.test
 php artisan serve      # marketing: localhost:8000 · app: acme.localhost:8000
 php artisan nssf:schedule   # rates: none ship, see docs/PAYROLL.md
 php artisan vat:schedule    # VAT rates: none ship either
 php artisan exchange:rate   # the day's market and Ministry LBP/USD rates
 php artisan eosi:accrue <business>   # freeze end-of-service estimates
-./vendor/bin/pest      # 350 tests (SQLite)
+./vendor/bin/pest      # 366 tests (SQLite; 9 MySQL-only ones skip)
 ./vendor/bin/pest -c phpunit.mysql.xml   # the same suite against real MySQL
 ```
 
