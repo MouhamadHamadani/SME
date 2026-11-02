@@ -30,7 +30,8 @@ Laravel 13 · Blade · Tailwind 4 · MySQL · Pest · PHP 8.3
 | Dual-currency rates & revaluation | Built — [`docs/DUAL-CURRENCY-STATUS.md`](docs/DUAL-CURRENCY-STATUS.md) |
 | End-of-service accrual | Built — [`docs/EOSI-STATUS.md`](docs/EOSI-STATUS.md) |
 | Design — **app UI** phase | Not started. The marketing system extends into it by design. |
-| Payments, invoice PDF, VAT purchase entry | Not built |
+| Payments & receipts ledger | Built — [`docs/PAYMENTS-STATUS.md`](docs/PAYMENTS-STATUS.md) |
+| Invoice/receipt PDF, VAT purchase entry | Not built |
 | Self-serve signup & Whish/OMT billing | Phase 2, not built |
 
 **No regulatory figures ship with this system.** NSSF rates and ceilings, VAT

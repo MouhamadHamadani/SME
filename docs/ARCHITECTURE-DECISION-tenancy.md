@@ -1,6 +1,6 @@
 # ADR: one database per tenant, versus `tenant_id` scoping
 
-**Status:** decided in code, awaiting a business decision on whether to keep it.
+**Status:** **DECIDED — keep DB-per-tenant.** Confirmed 2 November 2026 by the founder, after re-reviewing cost against the actual hosting setup (self-managed MySQL on a Hetzner server, not AWS RDS — see the note under `AWS RDS cost` below). The two hardening follow-ups in the Recommendation section are adopted as near-term work, not open questions.
 **Date:** 8 September 2026 · **Commit under review:** `4ac697f`
 **Author:** written at the request of the founder, who noticed the deviation.
 
@@ -169,6 +169,17 @@ bills for instance class, allocated storage, IOPS and backup storage. It does
 not bill per database or per schema. 250 small databases on one instance and
 one database with 250 tenants' rows in it carry the same instance bill.
 
+> **Correction, 2 November 2026.** This product is not hosted on AWS RDS. It
+> runs on a self-managed MySQL instance on a Hetzner server. The analysis
+> below was written against RDS pricing because that was the plan on record
+> at the time; the conclusion still holds and is actually stronger on
+> Hetzner. A flat-rate server bills for CPU/RAM/disk, not per database, per
+> instance class, or per IOPS tier — so the “essentially identical”
+> finding below becomes “identical”: 250 schemas versus one schema with 250
+> tenants' rows cost the same box the same money either way. The RDS figures
+> are left in place as the worked example; treat “RDS” below as standing in
+> for “whatever MySQL host this runs on.”
+
 Rough estimate for either model at 250 customers of this size:
 **`db.t4g.medium`, Multi-AZ, ~$120–160/month** including storage and backups
 — *2026 list-price estimate, verify against current AWS pricing before
@@ -262,4 +273,9 @@ the priority is operational simplicity above data-isolation guarantees — a
 legitimate call for a two-person company — then revert now, at 3–5 days, rather
 than at 10 days after the next three modules.
 
-**This needs a human decision. It has not been made.**
+**Decision: keep it.** Confirmed by the founder on 2 November 2026. The two
+hardening items above — automating `tenants:migrate` and enabling
+per-tenant database users via `PermissionControlledMySQLDatabaseManager` —
+are adopted as the follow-up work, not left open. They do not block anything
+already shipped; they close the two real operational gaps this document
+identified.
