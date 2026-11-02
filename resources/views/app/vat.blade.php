@@ -47,13 +47,11 @@
         <x-card tone="light" accent="overdue" class="mt-8">
             <h2 class="text-lg font-semibold text-trust-navy">{{ __('app.vat.no_schedule_heading') }}</h2>
             <p class="mt-2 max-w-2xl leading-relaxed text-warm-charcoal/80">{{ __('app.vat.no_schedule_body') }}</p>
-            <pre dir="ltr" class="mt-4 overflow-x-auto rounded-lg bg-warm-charcoal/5 p-3 text-start text-xs text-warm-charcoal/80"><code>{{ __('app.vat.no_schedule_hint') }}</code></pre>
         </x-card>
     @elseif (! $return)
         <x-card tone="light" accent="navy" class="mt-8">
             <h2 class="text-lg font-semibold text-trust-navy">{{ __('app.vat.no_returns_heading') }}</h2>
             <p class="mt-2 max-w-2xl leading-relaxed text-warm-charcoal/80">{{ __('app.vat.no_returns_body') }}</p>
-            <pre dir="ltr" class="mt-4 overflow-x-auto rounded-lg bg-warm-charcoal/5 p-3 text-start text-xs text-warm-charcoal/80"><code>{{ __('app.vat.no_returns_hint') }}</code></pre>
         </x-card>
     @endif
 

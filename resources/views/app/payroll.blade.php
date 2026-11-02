@@ -45,7 +45,6 @@
             <p class="mt-2 max-w-2xl leading-relaxed text-warm-charcoal/80">
                 {{ __('app.payroll.no_schedule_body') }}
             </p>
-            <pre dir="ltr" class="mt-4 overflow-x-auto rounded-lg bg-warm-charcoal/5 p-3 text-start text-xs text-warm-charcoal/80"><code>{{ __('app.payroll.no_schedule_hint') }}</code></pre>
         </x-card>
     @elseif (! $run)
         <x-card tone="light" accent="navy" class="mt-8">
@@ -53,7 +52,6 @@
             <p class="mt-2 max-w-2xl leading-relaxed text-warm-charcoal/80">
                 {{ __('app.payroll.no_runs_body') }}
             </p>
-            <pre dir="ltr" class="mt-4 overflow-x-auto rounded-lg bg-warm-charcoal/5 p-3 text-start text-xs text-warm-charcoal/80"><code>{{ __('app.payroll.no_runs_hint') }}</code></pre>
         </x-card>
     @endif
 
